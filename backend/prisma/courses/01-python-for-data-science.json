@@ -1,0 +1,237 @@
+{
+  "slug": "python-for-data-science",
+  "title": "Python for Data Science",
+  "description": "Master Python from the ground up — variables, control flow, functions, and the core data science libraries: NumPy, Pandas, and Matplotlib.",
+  "level": "Beginner",
+  "estimatedHours": "18",
+  "tags": [
+    "Python",
+    "Pandas",
+    "Data Analysis",
+    "Data Visualization"
+  ],
+  "displayOrder": 1,
+  "prerequisiteSlugs": [],
+  "modules": [
+    {
+      "order": 1,
+      "title": "Python Fundamentals",
+      "estimatedMins": 120,
+      "isFreePreview": true,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "What is Python?",
+          "type": "text",
+          "estimatedMins": 15,
+          "xpReward": 10,
+          "content": "\n## What is Python?\n\nPython is a high-level, interpreted programming language known for its clean syntax and readability.\nIt was created by Guido van Rossum and first released in 1991.\n\n### Why Python for Data Science?\n\n- **Readability**: Code reads almost like English\n- **Libraries**: NumPy, Pandas, Matplotlib, Scikit-learn are industry standard\n- **Community**: Largest data science community worldwide\n- **Versatility**: From web scraping to machine learning in the same language\n\n### Your first Python program\n\n```python\n# This is a comment\nprint(\"Hello, Data Science!\")\n\n# Variables — no type declarations needed\nname = \"Ramesh\"\nage = 28\nis_student = True\n\nprint(f\"My name is {name}, I am {age} years old.\")\n```\n\n### Key data types\n\n| Type | Example | Use case |\n|------|---------|----------|\n| int | `42` | Whole numbers |\n| float | `3.14` | Decimals |\n| str | `\"hello\"` | Text |\n| bool | `True` | Flags |\n| list | `[1, 2, 3]` | Ordered collection |\n| dict | `{\"key\": \"val\"}` | Key-value pairs |\n\n> **Exercise**: Open a Python REPL (type `python3` in your terminal) and print your name and age.\n  "
+        },
+        {
+          "order": 2,
+          "title": "Control Flow & Loops",
+          "type": "text",
+          "estimatedMins": 20,
+          "xpReward": 10,
+          "content": "\n## Control Flow & Loops\n\nControl flow lets your program make decisions. Loops let it repeat actions.\n\n### if / elif / else\n\n```python\nscore = 85\n\nif score >= 90:\n    print(\"A — Excellent!\")\nelif score >= 75:\n    print(\"B — Good\")\nelif score >= 60:\n    print(\"C — Pass\")\nelse:\n    print(\"F — Try again\")\n```\n\n### for loops\n\n```python\n# Iterate over a list\ncourses = [\"Python\", \"SQL\", \"Machine Learning\"]\nfor course in courses:\n    print(f\"Studying: {course}\")\n\n# range() for numeric loops\nfor i in range(1, 6):\n    print(i)  # prints 1 2 3 4 5\n\n# List comprehension — Pythonic shorthand\nsquares = [x**2 for x in range(1, 11)]\nprint(squares)  # [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]\n```\n\n### while loops\n\n```python\ncount = 0\nwhile count < 5:\n    print(f\"Count: {count}\")\n    count += 1\n```\n\n> **Key insight**: In Python, indentation (4 spaces) defines code blocks — there are no curly braces.\n  "
+        },
+        {
+          "order": 3,
+          "title": "Functions & Modules",
+          "type": "text",
+          "estimatedMins": 25,
+          "xpReward": 10,
+          "content": "\n## Functions & Modules\n\nFunctions are reusable blocks of code. Modules are files that group related functions.\n\n### Defining functions\n\n```python\ndef greet(name, greeting=\"Hello\"):\n    \"\"\"Return a greeting string.\"\"\"     # docstring\n    return f\"{greeting}, {name}!\"\n\nprint(greet(\"Ramesh\"))          # Hello, Ramesh!\nprint(greet(\"Priya\", \"Hi\"))     # Hi, Priya!\n```\n\n### *args and **kwargs\n\n```python\ndef summarise(*numbers):\n    \"\"\"Accept any number of arguments.\"\"\"\n    return {\n        \"count\": len(numbers),\n        \"sum\":   sum(numbers),\n        \"mean\":  sum(numbers) / len(numbers),\n    }\n\nprint(summarise(10, 20, 30, 40))\n```\n\n### Importing modules\n\n```python\nimport math\nprint(math.sqrt(144))   # 12.0\nprint(math.pi)          # 3.14159...\n\nfrom datetime import datetime\nprint(datetime.now().strftime(\"%Y-%m-%d\"))\n```\n\n### Installing external packages\n\n```bash\npip install pandas numpy matplotlib\n```\n  "
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Data Manipulation with Pandas",
+      "estimatedMins": 150,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Introduction to Pandas",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## Introduction to Pandas\n\nPandas is the cornerstone library for data manipulation in Python. It introduces two key structures: **Series** and **DataFrame**.\n\n### Creating a DataFrame\n\n```python\nimport pandas as pd\n\n# From a dictionary\ndata = {\n    \"name\":   [\"Alice\", \"Bob\", \"Carol\", \"Dave\"],\n    \"age\":    [25, 30, 27, 35],\n    \"salary\": [70000, 85000, 90000, 72000],\n    \"dept\":   [\"Data\", \"Engineering\", \"Data\", \"Marketing\"],\n}\ndf = pd.DataFrame(data)\nprint(df)\n```\n\n### Essential operations\n\n```python\ndf.head()          # first 5 rows\ndf.shape           # (rows, columns)\ndf.dtypes          # column data types\ndf.describe()      # statistical summary\n\n# Select columns\ndf[\"name\"]         # Series\ndf[[\"name\",\"age\"]] # DataFrame\n\n# Filter rows\ndf[df[\"dept\"] == \"Data\"]\ndf[df[\"salary\"] > 80000]\n```\n\n### Reading files\n\n```python\ndf = pd.read_csv(\"data.csv\")\ndf = pd.read_excel(\"data.xlsx\")\ndf.to_csv(\"output.csv\", index=False)\n```\n  "
+        },
+        {
+          "order": 2,
+          "title": "Cleaning & Transforming Data",
+          "type": "text",
+          "estimatedMins": 35,
+          "xpReward": 15,
+          "content": "\n## Cleaning & Transforming Data\n\nReal-world data is messy. Pandas gives you the tools to fix it.\n\n### Handling missing values\n\n```python\nimport pandas as pd\nimport numpy as np\n\ndf = pd.read_csv(\"sales.csv\")\n\n# Detect missing values\ndf.isnull().sum()          # count per column\ndf[df[\"price\"].isnull()]   # rows where price is missing\n\n# Fix missing values\ndf[\"price\"].fillna(df[\"price\"].median(), inplace=True)\ndf.dropna(subset=[\"customer_id\"], inplace=True)\n```\n\n### Renaming & type conversion\n\n```python\ndf.rename(columns={\"qty\": \"quantity\", \"amt\": \"amount\"}, inplace=True)\ndf[\"date\"] = pd.to_datetime(df[\"date\"])\ndf[\"revenue\"] = df[\"quantity\"] * df[\"amount\"]\n```\n\n### GroupBy & aggregation\n\n```python\n# Total revenue by department\ndf.groupby(\"dept\")[\"revenue\"].sum()\n\n# Multiple aggregations\ndf.groupby(\"dept\").agg(\n    total_revenue=(\"revenue\", \"sum\"),\n    avg_salary=(\"salary\", \"mean\"),\n    headcount=(\"name\", \"count\"),\n)\n```\n  "
+        },
+        {
+          "order": 3,
+          "title": "Merging & Reshaping Data",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## Merging & Reshaping Data\n\nCombining datasets and pivoting tables are daily tasks in data science.\n\n### Merging (like SQL JOINs)\n\n```python\nemployees = pd.read_csv(\"employees.csv\")   # id, name, dept_id\ndepartments = pd.read_csv(\"departments.csv\") # id, dept_name\n\n# INNER JOIN\nmerged = pd.merge(employees, departments,\n                  left_on=\"dept_id\", right_on=\"id\",\n                  how=\"inner\")\n\n# LEFT JOIN\nmerged = pd.merge(employees, departments,\n                  left_on=\"dept_id\", right_on=\"id\",\n                  how=\"left\")\n```\n\n### Pivot tables\n\n```python\npivot = df.pivot_table(\n    values=\"revenue\",\n    index=\"region\",\n    columns=\"product_category\",\n    aggfunc=\"sum\",\n    fill_value=0,\n)\n```\n\n### Melting (wide → long format)\n\n```python\nmelted = df.melt(\n    id_vars=[\"product\"],\n    value_vars=[\"Q1\", \"Q2\", \"Q3\", \"Q4\"],\n    var_name=\"quarter\",\n    value_name=\"sales\",\n)\n```\n  "
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Data Visualisation with Matplotlib",
+      "estimatedMins": 120,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Matplotlib & Seaborn Basics",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 10,
+          "content": "\n## Matplotlib & Seaborn Basics\n\nVisualisation turns raw numbers into insights. Matplotlib is the foundation; Seaborn makes it beautiful.\n\n### Line chart\n\n```python\nimport matplotlib.pyplot as plt\n\nmonths = [\"Jan\",\"Feb\",\"Mar\",\"Apr\",\"May\",\"Jun\"]\nrevenue = [42000, 55000, 48000, 61000, 70000, 68000]\n\nplt.figure(figsize=(10, 5))\nplt.plot(months, revenue, marker=\"o\", color=\"#4f46e5\", linewidth=2)\nplt.title(\"Monthly Revenue 2024\", fontsize=16)\nplt.xlabel(\"Month\"); plt.ylabel(\"Revenue ($)\")\nplt.grid(True, alpha=0.3)\nplt.tight_layout()\nplt.show()\n```\n\n### Bar chart with Seaborn\n\n```python\nimport seaborn as sns\nimport pandas as pd\n\ndf = pd.DataFrame({\"department\": [\"Data\",\"Eng\",\"Marketing\",\"Sales\"],\n                   \"headcount\":  [12, 25, 8, 18]})\n\nsns.barplot(data=df, x=\"department\", y=\"headcount\", palette=\"viridis\")\nplt.title(\"Headcount by Department\")\nplt.show()\n```\n\n### When to use which chart\n\n| Chart type | Use when |\n|-----------|----------|\n| Line | Trends over time |\n| Bar | Comparing categories |\n| Scatter | Correlation between two variables |\n| Histogram | Distribution of one variable |\n| Heatmap | Correlation matrix |\n  "
+        },
+        {
+          "order": 2,
+          "title": "Building an EDA Dashboard",
+          "type": "project",
+          "estimatedMins": 45,
+          "xpReward": 20,
+          "content": "\n## Project: Exploratory Data Analysis Dashboard\n\nApply everything you've learned to a real dataset.\n\n### Dataset\nDownload the **Titanic survival dataset** from Kaggle or use this command:\n```bash\npip install seaborn\npython -c \"import seaborn as sns; sns.load_dataset('titanic').to_csv('titanic.csv')\"\n```\n\n### Tasks\n\n**Task 1 — Load & inspect**\n```python\nimport pandas as pd\ndf = pd.read_csv(\"titanic.csv\")\nprint(df.shape, df.dtypes, df.isnull().sum())\n```\n\n**Task 2 — Clean**\n- Fill missing `age` with median\n- Drop rows where `embarked` is null\n- Create `fare_category` (Low/Medium/High) using `pd.cut()`\n\n**Task 3 — Analyse**\n- Survival rate by gender\n- Survival rate by passenger class\n- Age distribution of survivors vs non-survivors\n\n**Task 4 — Visualise**\nCreate a 2×2 subplot figure with:\n1. Bar chart: survival rate by sex\n2. Bar chart: survival rate by pclass\n3. Histogram: age distribution\n4. Heatmap: correlation matrix of numeric columns\n\n**Deliverable**: A Python script or Jupyter notebook that produces all four charts.\n  "
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "text": "What is the output of `print(type(3.14))`?",
+      "options": [
+        "<class 'int'>",
+        "<class 'float'>",
+        "<class 'str'>",
+        "<class 'number'>"
+      ],
+      "correctAnswer": "<class 'float'>",
+      "explanation": "",
+      "skillTag": "Python",
+      "xpReward": 5
+    },
+    {
+      "text": "Which Pandas method shows the first 5 rows of a DataFrame?",
+      "options": [
+        "df.top()",
+        "df.head()",
+        "df.first()",
+        "df.show()"
+      ],
+      "correctAnswer": "df.head()",
+      "explanation": "",
+      "skillTag": "Pandas",
+      "xpReward": 5
+    },
+    {
+      "text": "What does `df.shape` return?",
+      "options": [
+        "Number of rows only",
+        "Number of columns only",
+        "A tuple (rows, columns)",
+        "Total number of cells"
+      ],
+      "correctAnswer": "A tuple (rows, columns)",
+      "explanation": "",
+      "skillTag": "Pandas",
+      "xpReward": 5
+    },
+    {
+      "text": "Which operator is used for exponentiation in Python?",
+      "options": [
+        "^",
+        "**",
+        "pow()",
+        "//"
+      ],
+      "correctAnswer": "**",
+      "explanation": "",
+      "skillTag": "Python",
+      "xpReward": 5
+    },
+    {
+      "text": "What is a list comprehension?",
+      "options": [
+        "A way to import lists",
+        "A compact way to create lists",
+        "A method to sort lists",
+        "A type of dictionary"
+      ],
+      "correctAnswer": "A compact way to create lists",
+      "explanation": "",
+      "skillTag": "Python",
+      "xpReward": 5
+    },
+    {
+      "text": "How do you select rows where column \"age\" > 30 in Pandas?",
+      "options": [
+        "df.filter(age > 30)",
+        "df[df[\"age\"] > 30]",
+        "df.select(age=\">30\")",
+        "df.where(\"age\", 30)"
+      ],
+      "correctAnswer": "df[df[\"age\"] > 30]",
+      "explanation": "",
+      "skillTag": "Pandas",
+      "xpReward": 5
+    },
+    {
+      "text": "Which Pandas method fills missing values?",
+      "options": [
+        "fillna()",
+        "replace_null()",
+        "fill_missing()",
+        "impute()"
+      ],
+      "correctAnswer": "fillna()",
+      "explanation": "",
+      "skillTag": "Data Analysis",
+      "xpReward": 5
+    },
+    {
+      "text": "What does `groupby` do in Pandas?",
+      "options": [
+        "Sorts the DataFrame",
+        "Groups rows by column values for aggregation",
+        "Merges two DataFrames",
+        "Removes duplicate rows"
+      ],
+      "correctAnswer": "Groups rows by column values for aggregation",
+      "explanation": "",
+      "skillTag": "Pandas",
+      "xpReward": 5
+    },
+    {
+      "text": "Which chart type is best for showing correlation between two numeric variables?",
+      "options": [
+        "Bar chart",
+        "Pie chart",
+        "Scatter plot",
+        "Area chart"
+      ],
+      "correctAnswer": "Scatter plot",
+      "explanation": "",
+      "skillTag": "Data Visualization",
+      "xpReward": 5
+    },
+    {
+      "text": "What does the `merge()` function in Pandas correspond to in SQL?",
+      "options": [
+        "GROUP BY",
+        "ORDER BY",
+        "JOIN",
+        "UNION"
+      ],
+      "correctAnswer": "JOIN",
+      "explanation": "",
+      "skillTag": "Pandas",
+      "xpReward": 5
+    }
+  ]
+}

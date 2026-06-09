@@ -1,0 +1,239 @@
+{
+  "slug": "machine-learning-basics",
+  "title": "Machine Learning Basics",
+  "description": "Understand the core algorithms behind ML — linear regression, decision trees, clustering — and build your first predictive models with Scikit-learn.",
+  "level": "Intermediate",
+  "estimatedHours": "24",
+  "tags": [
+    "Machine Learning",
+    "Python",
+    "Statistics",
+    "Data Analysis"
+  ],
+  "displayOrder": 3,
+  "prerequisiteSlugs": [
+    "python-for-data-science"
+  ],
+  "modules": [
+    {
+      "order": 1,
+      "title": "ML Foundations",
+      "estimatedMins": 120,
+      "isFreePreview": true,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "What is Machine Learning?",
+          "type": "text",
+          "estimatedMins": 20,
+          "xpReward": 10,
+          "content": "\n## What is Machine Learning?\n\nMachine Learning is the practice of teaching computers to learn patterns from data, rather than programming explicit rules.\n\n### The three types of ML\n\n**Supervised Learning** — learn from labelled examples\n- Input: (features, correct answer) pairs\n- Output: a model that predicts answers for new inputs\n- Examples: spam detection, house price prediction, image classification\n\n**Unsupervised Learning** — find hidden structure\n- Input: features only (no labels)\n- Output: groups, patterns, or compressed representations\n- Examples: customer segmentation, anomaly detection\n\n**Reinforcement Learning** — learn by reward and penalty\n- Input: actions, environment, rewards\n- Output: a policy (strategy) that maximises cumulative reward\n- Examples: game-playing AI, robotics, recommendation systems\n\n### The ML workflow\n\n1. **Define the problem** — what are you predicting?\n2. **Collect & clean data** — garbage in = garbage out\n3. **Feature engineering** — create useful inputs for the model\n4. **Choose & train a model** — fit the algorithm to training data\n5. **Evaluate** — measure performance on held-out test data\n6. **Deploy & monitor** — serve predictions in production\n\n### Key terminology\n\n| Term | Meaning |\n|------|---------|\n| Feature | An input variable (column) used to make predictions |\n| Label / Target | The output we're predicting |\n| Training set | Data used to fit the model |\n| Test set | Data used to evaluate the model |\n| Overfitting | Model memorises training data; fails on new data |\n| Underfitting | Model is too simple to capture the pattern |\n  "
+        },
+        {
+          "order": 2,
+          "title": "Key Statistics for ML",
+          "type": "text",
+          "estimatedMins": 25,
+          "xpReward": 10,
+          "content": "\n## Key Statistics for ML\n\nYou don't need a maths PhD for ML, but these concepts are essential.\n\n### Distributions\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# Generate normal distribution\ndata = np.random.normal(loc=0, scale=1, size=1000)\n\nplt.hist(data, bins=50, edgecolor='black', color='#4f46e5', alpha=0.7)\nplt.title(\"Normal Distribution (μ=0, σ=1)\")\nplt.xlabel(\"Value\"); plt.ylabel(\"Frequency\")\nplt.show()\n```\n\n### Correlation\n\n```python\nimport pandas as pd\ndf = pd.read_csv(\"house_prices.csv\")\n\n# Correlation matrix\ncorr = df.corr()\n\nimport seaborn as sns\nsns.heatmap(corr, annot=True, cmap='coolwarm', center=0)\n```\n\n### Correlation ≠ Causation\nIce cream sales and drowning rates are correlated (both peak in summer) but one does **not** cause the other. Always think about confounding variables.\n\n### The bias–variance trade-off\n\n- **High bias** (underfitting): model is too simple — wrong on training AND test data\n- **High variance** (overfitting): model is too complex — great on training, terrible on test\n- **Goal**: find the sweet spot with low bias AND low variance\n  "
+        },
+        {
+          "order": 3,
+          "title": "Your First ML Model with Scikit-learn",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## Your First ML Model with Scikit-learn\n\nScikit-learn is the standard Python ML library — consistent API, great documentation.\n\n```bash\npip install scikit-learn pandas numpy\n```\n\n### The Scikit-learn pattern (works for ALL algorithms)\n\n```python\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_absolute_error, r2_score\nimport pandas as pd\n\n# 1. Load data\ndf = pd.read_csv(\"house_prices.csv\")\nX = df[[\"bedrooms\",\"bathrooms\",\"sqft\",\"age\"]]  # features\ny = df[\"price\"]                                 # target\n\n# 2. Split\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n\n# 3. Train\nmodel = LinearRegression()\nmodel.fit(X_train, y_train)\n\n# 4. Predict\ny_pred = model.predict(X_test)\n\n# 5. Evaluate\nprint(f\"MAE:  {mean_absolute_error(y_test, y_pred):,.0f}\")\nprint(f\"R²:   {r2_score(y_test, y_pred):.3f}\")\n```\n\n> The same 5-step pattern (import, split, fit, predict, evaluate) works for **every** algorithm in Scikit-learn. Change the model class; keep the rest.\n  "
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Supervised Learning",
+      "estimatedMins": 180,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Linear & Logistic Regression",
+          "type": "text",
+          "estimatedMins": 35,
+          "xpReward": 15,
+          "content": "\n## Linear & Logistic Regression\n\n### Linear Regression — predict a continuous number\n\n```python\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.preprocessing import StandardScaler\nimport numpy as np\n\n# Linear regression formula: y = w₁x₁ + w₂x₂ + ... + b\nmodel = LinearRegression()\nmodel.fit(X_train, y_train)\n\nprint(\"Coefficients:\", model.coef_)    # feature weights\nprint(\"Intercept:\",    model.intercept_)\n```\n\n**When to use**: house prices, sales forecasting, any continuous target.\n\n### Logistic Regression — predict a class (0 or 1)\n\nDespite the name, it's a **classification** algorithm.\n\n```python\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score, classification_report\n\nmodel = LogisticRegression(max_iter=1000)\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_test)\n\nprint(f\"Accuracy: {accuracy_score(y_test, y_pred):.2%}\")\nprint(classification_report(y_test, y_pred))\n```\n\n**When to use**: spam detection, churn prediction, medical diagnosis.\n\n### Regularisation — preventing overfitting\n\n```python\nfrom sklearn.linear_model import Ridge, Lasso\n\nridge = Ridge(alpha=1.0)   # L2 — penalise large weights\nlasso = Lasso(alpha=0.1)   # L1 — drives some weights to zero (feature selection)\n```\n  "
+        },
+        {
+          "order": 2,
+          "title": "Decision Trees & Random Forests",
+          "type": "text",
+          "estimatedMins": 35,
+          "xpReward": 15,
+          "content": "\n## Decision Trees & Random Forests\n\n### Decision Trees — intuitive and interpretable\n\n```python\nfrom sklearn.tree import DecisionTreeClassifier, plot_tree\nimport matplotlib.pyplot as plt\n\nmodel = DecisionTreeClassifier(max_depth=4, random_state=42)\nmodel.fit(X_train, y_train)\n\n# Visualise the tree\nplt.figure(figsize=(20, 8))\nplot_tree(model, feature_names=X.columns, class_names=[\"No\",\"Yes\"],\n          filled=True, rounded=True)\nplt.show()\n```\n\n**Pros**: Interpretable, no scaling needed, handles mixed types\n**Cons**: Prone to overfitting — limit depth with `max_depth`\n\n### Random Forest — an ensemble of trees\n\n```python\nfrom sklearn.ensemble import RandomForestClassifier\n\nrf = RandomForestClassifier(\n    n_estimators=100,   # 100 trees\n    max_depth=8,\n    random_state=42,\n    n_jobs=-1,          # use all CPU cores\n)\nrf.fit(X_train, y_train)\nprint(f\"Test accuracy: {rf.score(X_test, y_test):.2%}\")\n\n# Feature importance\nimportances = pd.Series(rf.feature_importances_, index=X.columns)\nimportances.sort_values().plot(kind='barh', figsize=(8,5))\n```\n\n**Why random forests beat single trees**: Each tree sees a random subset of data and features → lower variance → better generalisation.\n  "
+        },
+        {
+          "order": 3,
+          "title": "Clustering with K-Means",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## Clustering with K-Means\n\nK-Means is the most popular **unsupervised** algorithm — it groups data into k clusters without labels.\n\n### How it works\n1. Randomly initialise k centroids\n2. Assign each point to its nearest centroid\n3. Recompute centroids as cluster means\n4. Repeat 2–3 until convergence\n\n```python\nfrom sklearn.cluster import KMeans\nfrom sklearn.preprocessing import StandardScaler\nimport matplotlib.pyplot as plt\n\n# Scale features first (K-Means is distance-based)\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\n\n# Fit model\nkmeans = KMeans(n_clusters=4, random_state=42, n_init=10)\nlabels = kmeans.fit_predict(X_scaled)\n\n# Visualise (for 2D data)\nplt.scatter(X_scaled[:,0], X_scaled[:,1], c=labels, cmap='viridis', alpha=0.6)\nplt.scatter(kmeans.cluster_centers_[:,0], kmeans.cluster_centers_[:,1],\n            s=200, c='red', marker='X', label='Centroids')\nplt.legend(); plt.title(\"K-Means Clusters\"); plt.show()\n```\n\n### Choosing k — the Elbow Method\n\n```python\ninertias = []\nfor k in range(1, 11):\n    km = KMeans(n_clusters=k, random_state=42, n_init=10)\n    km.fit(X_scaled)\n    inertias.append(km.inertia_)\n\nplt.plot(range(1,11), inertias, 'bo-')\nplt.xlabel(\"k\"); plt.ylabel(\"Inertia\"); plt.title(\"Elbow Method\")\n```\n  "
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Model Evaluation",
+      "estimatedMins": 120,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Model Evaluation Metrics",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 10,
+          "content": "\n## Model Evaluation Metrics\n\nChoosing the right metric is as important as choosing the right algorithm.\n\n### Regression metrics\n\n```python\nfrom sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score\nimport numpy as np\n\nmae  = mean_absolute_error(y_test, y_pred)\nrmse = np.sqrt(mean_squared_error(y_test, y_pred))\nr2   = r2_score(y_test, y_pred)\n\nprint(f\"MAE:  {mae:.2f}  (average error in original units)\")\nprint(f\"RMSE: {rmse:.2f} (penalises large errors more)\")\nprint(f\"R²:   {r2:.3f}  (1.0 = perfect, 0 = predicts mean)\")\n```\n\n### Classification metrics\n\n```python\nfrom sklearn.metrics import (accuracy_score, precision_score,\n                              recall_score, f1_score, confusion_matrix)\n\nprint(f\"Accuracy:  {accuracy_score(y_test, y_pred):.2%}\")\nprint(f\"Precision: {precision_score(y_test, y_pred):.2%}\")\nprint(f\"Recall:    {recall_score(y_test, y_pred):.2%}\")\nprint(f\"F1 Score:  {f1_score(y_test, y_pred):.2%}\")\n```\n\n### When to use which metric\n| Metric | Use when |\n|--------|----------|\n| Accuracy | Balanced classes |\n| Precision | False positives are costly (spam filter) |\n| Recall | False negatives are costly (cancer diagnosis) |\n| F1 | You need a balance of both |\n| R² | Regression — how much variance is explained |\n  "
+        },
+        {
+          "order": 2,
+          "title": "Cross-Validation & Hyperparameter Tuning",
+          "type": "text",
+          "estimatedMins": 35,
+          "xpReward": 15,
+          "content": "\n## Cross-Validation & Hyperparameter Tuning\n\n### Cross-validation — reliable model evaluation\n\nA single train/test split can be misleading. Cross-validation uses ALL data for evaluation.\n\n```python\nfrom sklearn.model_selection import cross_val_score\nfrom sklearn.ensemble import RandomForestClassifier\nimport numpy as np\n\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\n\n# 5-fold cross-validation\nscores = cross_val_score(model, X, y, cv=5, scoring='accuracy')\nprint(f\"CV Accuracy: {scores.mean():.2%} ± {scores.std():.2%}\")\n```\n\n### GridSearchCV — find the best hyperparameters\n\n```python\nfrom sklearn.model_selection import GridSearchCV\n\nparam_grid = {\n    'n_estimators': [50, 100, 200],\n    'max_depth':    [4, 8, None],\n    'min_samples_split': [2, 5, 10],\n}\n\ngrid_search = GridSearchCV(\n    RandomForestClassifier(random_state=42),\n    param_grid,\n    cv=5, scoring='accuracy', n_jobs=-1, verbose=1\n)\ngrid_search.fit(X_train, y_train)\n\nprint(\"Best params:\", grid_search.best_params_)\nprint(\"Best CV score:\", grid_search.best_score_)\n```\n\n### Pipelines — prevent data leakage\n\n```python\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler\n\npipe = Pipeline([\n    ('scaler', StandardScaler()),\n    ('model',  RandomForestClassifier(n_estimators=100)),\n])\n\nscores = cross_val_score(pipe, X, y, cv=5)\n```\n  "
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "text": "What type of problem is predicting house prices?",
+      "options": [
+        "Classification",
+        "Clustering",
+        "Regression",
+        "Reinforcement Learning"
+      ],
+      "correctAnswer": "Regression",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    },
+    {
+      "text": "Which metric measures how much variance in y is explained by the model?",
+      "options": [
+        "MAE",
+        "RMSE",
+        "R²",
+        "F1 Score"
+      ],
+      "correctAnswer": "R²",
+      "explanation": "",
+      "skillTag": "Statistics",
+      "xpReward": 5
+    },
+    {
+      "text": "What does overfitting mean?",
+      "options": [
+        "The model is too simple",
+        "The model performs well on training but poorly on new data",
+        "The model has too few parameters",
+        "Training took too long"
+      ],
+      "correctAnswer": "The model performs well on training but poorly on new data",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    },
+    {
+      "text": "What is the Scikit-learn method used to train a model?",
+      "options": [
+        "train()",
+        "fit()",
+        "run()",
+        "learn()"
+      ],
+      "correctAnswer": "fit()",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    },
+    {
+      "text": "Which algorithm creates multiple trees and averages their predictions?",
+      "options": [
+        "Decision Tree",
+        "K-Means",
+        "Random Forest",
+        "Logistic Regression"
+      ],
+      "correctAnswer": "Random Forest",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    },
+    {
+      "text": "What is cross-validation used for?",
+      "options": [
+        "To speed up training",
+        "To get a more reliable estimate of model performance",
+        "To reduce the dataset size",
+        "To tune learning rate"
+      ],
+      "correctAnswer": "To get a more reliable estimate of model performance",
+      "explanation": "",
+      "skillTag": "Statistics",
+      "xpReward": 5
+    },
+    {
+      "text": "K-Means clustering is an example of which type of learning?",
+      "options": [
+        "Supervised",
+        "Reinforcement",
+        "Unsupervised",
+        "Semi-supervised"
+      ],
+      "correctAnswer": "Unsupervised",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    },
+    {
+      "text": "When should you use Recall as your primary metric?",
+      "options": [
+        "When false positives are costly",
+        "When false negatives are costly",
+        "When classes are balanced",
+        "When you have regression"
+      ],
+      "correctAnswer": "When false negatives are costly",
+      "explanation": "",
+      "skillTag": "Statistics",
+      "xpReward": 5
+    },
+    {
+      "text": "What does the train_test_split function do?",
+      "options": [
+        "Trains and tests the model",
+        "Splits data into training and test sets",
+        "Splits features from labels",
+        "Validates hyperparameters"
+      ],
+      "correctAnswer": "Splits data into training and test sets",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    },
+    {
+      "text": "Which regularisation technique drives some feature weights to exactly zero?",
+      "options": [
+        "Ridge (L2)",
+        "Lasso (L1)",
+        "Dropout",
+        "Batch Norm"
+      ],
+      "correctAnswer": "Lasso (L1)",
+      "explanation": "",
+      "skillTag": "Machine Learning",
+      "xpReward": 5
+    }
+  ]
+}

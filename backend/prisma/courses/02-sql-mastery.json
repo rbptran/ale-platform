@@ -1,0 +1,228 @@
+{
+  "slug": "sql-mastery",
+  "title": "SQL Mastery",
+  "description": "From SELECT to advanced window functions — learn the SQL skills every data professional needs.",
+  "level": "Beginner",
+  "estimatedHours": "14",
+  "tags": [
+    "SQL",
+    "Database Design",
+    "Data Analysis"
+  ],
+  "displayOrder": 2,
+  "prerequisiteSlugs": [],
+  "modules": [
+    {
+      "order": 1,
+      "title": "SQL Fundamentals",
+      "estimatedMins": 120,
+      "isFreePreview": true,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "SELECT, WHERE & ORDER BY",
+          "type": "text",
+          "estimatedMins": 20,
+          "xpReward": 10,
+          "content": "\n## SELECT, WHERE & ORDER BY\n\nSQL (Structured Query Language) is the universal language for working with relational databases.\n\n### Your first query\n\n```sql\n-- Retrieve all columns from a table\nSELECT * FROM employees;\n\n-- Select specific columns\nSELECT first_name, last_name, salary\nFROM employees;\n```\n\n### Filtering with WHERE\n\n```sql\n-- Single condition\nSELECT * FROM employees WHERE department = 'Engineering';\n\n-- Multiple conditions\nSELECT * FROM employees\nWHERE department = 'Engineering'\n  AND salary > 80000;\n\n-- IN operator\nSELECT * FROM employees\nWHERE department IN ('Data Science', 'Analytics', 'Engineering');\n\n-- LIKE for pattern matching\nSELECT * FROM employees\nWHERE last_name LIKE 'S%';   -- starts with S\n```\n\n### Sorting with ORDER BY\n\n```sql\nSELECT first_name, salary\nFROM employees\nORDER BY salary DESC;          -- highest first\n\n-- Multiple sort columns\nORDER BY department ASC, salary DESC;\n```\n\n> **Practice database**: Use [sqliteonline.com](https://sqliteonline.com) or install PostgreSQL locally.\n  "
+        },
+        {
+          "order": 2,
+          "title": "GROUP BY & Aggregate Functions",
+          "type": "text",
+          "estimatedMins": 25,
+          "xpReward": 10,
+          "content": "\n## GROUP BY & Aggregate Functions\n\nAggregation is one of the most powerful features of SQL.\n\n### Core aggregate functions\n\n```sql\nSELECT\n    COUNT(*)            AS total_employees,\n    AVG(salary)         AS avg_salary,\n    MAX(salary)         AS max_salary,\n    MIN(salary)         AS min_salary,\n    SUM(salary)         AS payroll\nFROM employees;\n```\n\n### GROUP BY\n\n```sql\n-- Revenue by department\nSELECT\n    department,\n    COUNT(*) AS headcount,\n    ROUND(AVG(salary), 0) AS avg_salary,\n    SUM(salary) AS total_payroll\nFROM employees\nGROUP BY department\nORDER BY total_payroll DESC;\n```\n\n### HAVING — filtering groups\n\n```sql\n-- Only departments with more than 5 employees\nSELECT department, COUNT(*) AS headcount\nFROM employees\nGROUP BY department\nHAVING COUNT(*) > 5;\n```\n\n### WHERE vs HAVING\n\n| | WHERE | HAVING |\n|--|-------|--------|\n| Filters | Individual rows | Aggregated groups |\n| When | Before GROUP BY | After GROUP BY |\n| Can use aggregates | No | Yes |\n  "
+        },
+        {
+          "order": 3,
+          "title": "CASE Statements & NULL Handling",
+          "type": "text",
+          "estimatedMins": 20,
+          "xpReward": 10,
+          "content": "\n## CASE Statements & NULL Handling\n\n### CASE — conditional logic in SQL\n\n```sql\nSELECT\n    name,\n    salary,\n    CASE\n        WHEN salary >= 100000 THEN 'Senior'\n        WHEN salary >= 70000  THEN 'Mid-Level'\n        ELSE                       'Junior'\n    END AS seniority_band\nFROM employees;\n```\n\n### NULL handling\n\n```sql\n-- Check for NULLs\nSELECT * FROM employees WHERE manager_id IS NULL;\nSELECT * FROM employees WHERE manager_id IS NOT NULL;\n\n-- Replace NULL with a default\nSELECT name, COALESCE(phone, 'Not provided') AS phone\nFROM contacts;\n\n-- NULL in aggregations — COUNT(*) counts all rows,\n-- COUNT(column) skips NULLs\nSELECT\n    COUNT(*)           AS total_rows,\n    COUNT(bonus)       AS rows_with_bonus\nFROM employees;\n```\n\n> **Key rule**: Any comparison with NULL using = or != returns NULL (unknown), not TRUE or FALSE. Always use IS NULL / IS NOT NULL.\n  "
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Joins & Subqueries",
+      "estimatedMins": 120,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "INNER, LEFT & RIGHT JOINs",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## Joins — Combining Tables\n\nJOINs are the most important concept in relational databases.\n\n### INNER JOIN — only matching rows\n\n```sql\nSELECT\n    e.first_name,\n    e.last_name,\n    d.department_name,\n    e.salary\nFROM employees e\nINNER JOIN departments d ON e.department_id = d.id;\n```\n\n### LEFT JOIN — all rows from left table\n\n```sql\n-- All employees, even those without a department\nSELECT e.first_name, d.department_name\nFROM employees e\nLEFT JOIN departments d ON e.department_id = d.id;\n-- department_name is NULL where no match exists\n```\n\n### Multiple JOINs\n\n```sql\nSELECT\n    o.order_date,\n    c.company_name,\n    p.product_name,\n    od.quantity,\n    od.unit_price\nFROM orders o\nJOIN customers c   ON o.customer_id  = c.id\nJOIN order_details od ON o.id        = od.order_id\nJOIN products p    ON od.product_id  = p.id\nWHERE o.order_date >= '2024-01-01';\n```\n\n### Join decision guide\n- Need only matching rows → **INNER JOIN**\n- Keep all rows from first table → **LEFT JOIN**\n- Keep all rows from both tables → **FULL OUTER JOIN**\n  "
+        },
+        {
+          "order": 2,
+          "title": "Subqueries & CTEs",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## Subqueries & CTEs\n\n### Subqueries — queries inside queries\n\n```sql\n-- Employees earning above the company average\nSELECT name, salary\nFROM employees\nWHERE salary > (SELECT AVG(salary) FROM employees);\n\n-- Using IN with a subquery\nSELECT name FROM employees\nWHERE department_id IN (\n    SELECT id FROM departments WHERE location = 'Mumbai'\n);\n```\n\n### CTEs (Common Table Expressions) — WITH clause\n\nCTEs make complex queries readable by giving subqueries a name.\n\n```sql\nWITH high_earners AS (\n    SELECT department_id, AVG(salary) AS avg_sal\n    FROM employees\n    WHERE salary > 80000\n    GROUP BY department_id\n),\ndept_info AS (\n    SELECT d.department_name, h.avg_sal\n    FROM departments d\n    JOIN high_earners h ON d.id = h.department_id\n)\nSELECT * FROM dept_info ORDER BY avg_sal DESC;\n```\n\n### Window functions — analytics without losing rows\n\n```sql\nSELECT\n    name,\n    department,\n    salary,\n    RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS dept_rank,\n    salary - AVG(salary) OVER (PARTITION BY department) AS vs_dept_avg\nFROM employees;\n```\n  "
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Database Design",
+      "estimatedMins": 90,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Database Design & Normalisation",
+          "type": "text",
+          "estimatedMins": 35,
+          "xpReward": 15,
+          "content": "\n## Database Design & Normalisation\n\nGood schema design prevents data anomalies and makes queries fast.\n\n### The three normal forms (simplified)\n\n**1NF** — No repeating groups; each cell holds one value.\n```sql\n-- BAD: tags column holds multiple values\nproducts (id, name, tags)   -- tags = \"python,data,ml\"\n\n-- GOOD: separate table\nproduct_tags (product_id, tag)\n```\n\n**2NF** — Every non-key column depends on the WHOLE primary key.\n\n**3NF** — No transitive dependencies (non-key columns don't depend on other non-key columns).\n\n### Primary & foreign keys\n\n```sql\nCREATE TABLE users (\n    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    email       VARCHAR(255) UNIQUE NOT NULL,\n    name        VARCHAR(255) NOT NULL,\n    created_at  TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE courses (\n    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    title       VARCHAR(255) NOT NULL,\n    created_by  UUID REFERENCES users(id) ON DELETE SET NULL\n);\n\nCREATE TABLE enrolments (\n    user_id    UUID REFERENCES users(id) ON DELETE CASCADE,\n    course_id  UUID REFERENCES courses(id) ON DELETE CASCADE,\n    enrolled_at TIMESTAMPTZ DEFAULT NOW(),\n    PRIMARY KEY (user_id, course_id)  -- composite PK\n);\n```\n\n### Indexing for performance\n\n```sql\n-- Index columns used in WHERE, JOIN, ORDER BY\nCREATE INDEX idx_enrolments_user ON enrolments(user_id);\nCREATE INDEX idx_lessons_module  ON lessons(module_id);\n```\n  "
+        },
+        {
+          "order": 2,
+          "title": "SQL Query Optimisation",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "\n## SQL Query Optimisation\n\nFast queries = happy users. Here's how to think about performance.\n\n### EXPLAIN / EXPLAIN ANALYZE\n\n```sql\nEXPLAIN ANALYZE\nSELECT u.name, COUNT(e.course_id) AS courses_enrolled\nFROM users u\nLEFT JOIN enrolments e ON u.id = e.user_id\nGROUP BY u.id, u.name;\n```\n\nRead the output: look for **Seq Scan** (slow on large tables) vs **Index Scan** (fast).\n\n### Common optimisation techniques\n\n```sql\n-- 1. Select only the columns you need (avoid SELECT *)\nSELECT id, name FROM users;   -- not SELECT *\n\n-- 2. Filter early with WHERE\nSELECT * FROM orders\nWHERE order_date >= NOW() - INTERVAL '30 days';\n\n-- 3. Use EXISTS instead of IN for large subqueries\nSELECT name FROM users u\nWHERE EXISTS (\n    SELECT 1 FROM enrolments e WHERE e.user_id = u.id\n);\n\n-- 4. Avoid functions on indexed columns in WHERE\n-- BAD:  WHERE LOWER(email) = 'test@example.com'\n-- GOOD: Create a functional index or store data normalised\n```\n\n### Key rules\n1. Index columns in JOIN ON, WHERE, ORDER BY\n2. Avoid `SELECT *` in production\n3. Use `LIMIT` during development\n4. Run `EXPLAIN ANALYZE` on slow queries\n  "
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "text": "Which SQL clause filters rows AFTER grouping?",
+      "options": [
+        "WHERE",
+        "HAVING",
+        "FILTER",
+        "CASE"
+      ],
+      "correctAnswer": "HAVING",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "What does an INNER JOIN return?",
+      "options": [
+        "All rows from both tables",
+        "All rows from the left table",
+        "Only rows with matching values in both tables",
+        "Only rows with no matches"
+      ],
+      "correctAnswer": "Only rows with matching values in both tables",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "Which aggregate function counts only non-NULL values?",
+      "options": [
+        "COUNT(*)",
+        "COUNT(column)",
+        "SUM(column)",
+        "COUNT_NULLS()"
+      ],
+      "correctAnswer": "COUNT(column)",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "What keyword is used to define a CTE?",
+      "options": [
+        "DEFINE",
+        "WITH",
+        "CREATE",
+        "AS"
+      ],
+      "correctAnswer": "WITH",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "Which normal form eliminates repeating groups?",
+      "options": [
+        "1NF",
+        "2NF",
+        "3NF",
+        "BCNF"
+      ],
+      "correctAnswer": "1NF",
+      "explanation": "",
+      "skillTag": "Database Design",
+      "xpReward": 5
+    },
+    {
+      "text": "What does ON DELETE CASCADE mean on a foreign key?",
+      "options": [
+        "The parent row is locked",
+        "Child rows are deleted when the parent is deleted",
+        "The child row becomes NULL",
+        "An error is thrown"
+      ],
+      "correctAnswer": "Child rows are deleted when the parent is deleted",
+      "explanation": "",
+      "skillTag": "Database Design",
+      "xpReward": 5
+    },
+    {
+      "text": "Which window function assigns a rank with no gaps?",
+      "options": [
+        "RANK()",
+        "ROW_NUMBER()",
+        "DENSE_RANK()",
+        "NTILE()"
+      ],
+      "correctAnswer": "DENSE_RANK()",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "How do you check if a column value is NULL in SQL?",
+      "options": [
+        "column = NULL",
+        "column IS NULL",
+        "column == NULL",
+        "ISNULL(column) = true"
+      ],
+      "correctAnswer": "column IS NULL",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "Which SQL command retrieves unique values from a column?",
+      "options": [
+        "UNIQUE",
+        "DISTINCT",
+        "EXCLUSIVE",
+        "DIFFERENT"
+      ],
+      "correctAnswer": "DISTINCT",
+      "explanation": "",
+      "skillTag": "SQL",
+      "xpReward": 5
+    },
+    {
+      "text": "What is the purpose of an index in a database?",
+      "options": [
+        "To store backup data",
+        "To enforce unique constraints",
+        "To speed up data retrieval",
+        "To encrypt columns"
+      ],
+      "correctAnswer": "To speed up data retrieval",
+      "explanation": "",
+      "skillTag": "Database Design",
+      "xpReward": 5
+    }
+  ]
+}

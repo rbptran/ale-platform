@@ -1,0 +1,82 @@
+{
+  "_instructions": {
+    "filename": "NN-your-course-slug.json  (NN = 2-digit display order, e.g. 04-deep-learning.json)",
+    "slug": "lowercase-hyphenated, must be unique",
+    "level": "Beginner | Intermediate | Advanced",
+    "tags": "must match names in skillDefinition table",
+    "prerequisiteSlugs": "slugs of courses that must be completed first — empty array if none",
+    "lesson.type": "text | video | project",
+    "lesson.content": "markdown string for text lessons; YouTube video ID for video lessons",
+    "question.options": "array of answer strings — first is index 0",
+    "question.correctAnswer": "must exactly match one of the options strings",
+    "question.skillTag": "must match a skill definition name"
+  },
+  "slug": "your-course-slug",
+  "title": "Your Course Title",
+  "description": "One or two sentences shown on the course card.",
+  "level": "Beginner",
+  "estimatedHours": 10,
+  "displayOrder": 4,
+  "tags": ["Python", "Data Analysis"],
+  "prerequisiteSlugs": [],
+  "modules": [
+    {
+      "order": 1,
+      "title": "Module One Title",
+      "estimatedMins": 90,
+      "isFreePreview": true,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Introduction",
+          "type": "text",
+          "estimatedMins": 15,
+          "xpReward": 10,
+          "content": "## Introduction\n\nWrite your lesson content in Markdown here.\n\n```python\nprint('hello')\n```"
+        },
+        {
+          "order": 2,
+          "title": "Video Overview",
+          "type": "video",
+          "estimatedMins": 20,
+          "xpReward": 10,
+          "content": "YOUTUBE_VIDEO_ID_HERE"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Module Two Title",
+      "estimatedMins": 120,
+      "isFreePreview": false,
+      "lessons": [
+        {
+          "order": 1,
+          "title": "Deep Dive",
+          "type": "text",
+          "estimatedMins": 30,
+          "xpReward": 15,
+          "content": "## Deep Dive\n\nMore content here."
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "text": "What does X return?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option A",
+      "explanation": "Option A is correct because...",
+      "skillTag": "Python",
+      "xpReward": 5
+    },
+    {
+      "text": "Which method does Y?",
+      "options": ["method1()", "method2()", "method3()", "method4()"],
+      "correctAnswer": "method2()",
+      "explanation": "method2() is the standard approach for...",
+      "skillTag": "Data Analysis",
+      "xpReward": 5
+    }
+  ]
+}

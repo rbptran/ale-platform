@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useIsAuthenticated } from './store/authStore';
+import { useIsAuthenticated, useAuthStore } from './store/authStore';
 
 import Login          from './pages/Login';
 import Register       from './pages/Register';
@@ -18,11 +18,13 @@ import Leaderboard    from './pages/Leaderboard';
 import VerifyEmail     from './pages/VerifyEmail';
 import ForgotPassword  from './pages/ForgotPassword';
 import ResetPassword   from './pages/ResetPassword';
+import AdminCourses    from './pages/AdminCourses';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout         from './components/Layout';
 
 export default function App() {
   const isAuthenticated = useIsAuthenticated();
+  const user = useAuthStore((s) => s.user);
 
   return (
     <Routes>
@@ -50,6 +52,9 @@ export default function App() {
           <Route path="/profile"      element={<Profile />} />
           <Route path="/mentors"      element={<Mentors />} />
           <Route path="/leaderboard"  element={<Leaderboard />} />
+          {/* Admin-only */}
+          <Route path="/admin/courses"
+            element={user?.role === 'admin' ? <AdminCourses /> : <Navigate to="/dashboard" replace />} />
         </Route>
       </Route>
 

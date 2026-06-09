@@ -19,11 +19,6 @@ const NAV = [
   { to: '/profile',      icon: '⚙️', label: 'Profile' },
 ];
 
-// Admin-only nav item shown below a divider when user.role === 'admin'
-const ADMIN_NAV = [
-  { to: '/admin/courses', icon: '🛠️', label: 'Manage Courses' },
-];
-
 export default function Layout() {
   useInactivityTimeout(); // session timeout — redirects to /login?reason=timeout after 30 min inactivity
   const isMobile = useIsMobile();
@@ -33,7 +28,6 @@ export default function Layout() {
   const user    = useAuthStore((s) => s.user);
   const logout  = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
-  const isAdmin = user?.role === 'admin';
 
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -54,22 +48,6 @@ export default function Layout() {
   const showSidebar = isMobile ? mobileOpen : true;
   const sbW = isMobile ? 260 : (collapsed ? 72 : 260);
   const showLabels = isMobile ? true : !collapsed;
-
-  const navLink = ({ to, icon, label }) => (
-    <NavLink key={to} to={to} style={({ isActive }) => ({
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: !showLabels ? '10px' : '10px 16px',
-      color: isActive ? '#fff' : 'rgba(255,255,255,.6)',
-      background: isActive ? '#4f46e5' : 'transparent',
-      borderRadius: 8, margin: '2px 0', fontSize: 14,
-      textDecoration: 'none', transition: 'all .15s',
-      justifyContent: !showLabels ? 'center' : 'flex-start',
-      boxShadow: isActive ? '0 2px 8px rgba(79,70,229,.4)' : 'none',
-    })}>
-      <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
-      {showLabels && <span>{label}</span>}
-    </NavLink>
-  );
 
   const sidebar = (
     <div style={{
@@ -107,19 +85,36 @@ export default function Layout() {
           <div style={{ padding: '4px 8px 8px', fontSize: 10, color: 'rgba(255,255,255,.3)',
                         letterSpacing: '1px', textTransform: 'uppercase' }}>MENU</div>
         )}
-        {NAV.map(navLink)}
-
-        {/* Admin section — visible only to admins */}
-        {isAdmin && (
-          <>
-            <div style={{ margin: '12px 8px 8px', borderTop: '1px solid rgba(255,255,255,.08)' }} />
-            {showLabels && (
-              <div style={{ padding: '4px 8px 8px', fontSize: 10, color: 'rgba(255,255,255,.3)',
-                            letterSpacing: '1px', textTransform: 'uppercase' }}>ADMIN</div>
-            )}
-            {ADMIN_NAV.map(navLink)}
-          </>
+        {user?.role === 'admin' && (
+          <NavLink to="/admin/courses" style={({ isActive }) => ({
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: !showLabels ? '10px' : '10px 16px',
+            color: isActive ? '#fff' : 'rgba(255,255,255,.6)',
+            background: isActive ? '#7c3aed' : 'rgba(124,58,237,.15)',
+            borderRadius: 8, margin: '2px 0 8px', fontSize: 14,
+            textDecoration: 'none', transition: 'all .15s',
+            justifyContent: !showLabels ? 'center' : 'flex-start',
+            border: '1px solid rgba(124,58,237,.3)',
+          })}>
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 }}>🛠️</span>
+            {showLabels && <span>Manage Courses</span>}
+          </NavLink>
         )}
+        {NAV.map(({ to, icon, label }) => (
+          <NavLink key={to} to={to} style={({ isActive }) => ({
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: !showLabels ? '10px' : '10px 16px',
+            color: isActive ? '#fff' : 'rgba(255,255,255,.6)',
+            background: isActive ? '#4f46e5' : 'transparent',
+            borderRadius: 8, margin: '2px 0', fontSize: 14,
+            textDecoration: 'none', transition: 'all .15s',
+            justifyContent: !showLabels ? 'center' : 'flex-start',
+            boxShadow: isActive ? '0 2px 8px rgba(79,70,229,.4)' : 'none',
+          })}>
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+            {showLabels && <span>{label}</span>}
+          </NavLink>
+        ))}
       </nav>
 
       {/* User footer */}
@@ -173,10 +168,6 @@ export default function Layout() {
           <div style={{ flex: 1 }} />
           {!isMobile && (
             <span style={{ fontSize: 13, color: '#64748b' }}>Welcome, {user?.name}</span>
-          )}
-          {isAdmin && (
-            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#ede9fe',
-                           color: '#4f46e5', fontWeight: 700 }}>Admin</span>
           )}
           <div style={{ width: 34, height: 34, borderRadius: '50%',
                         background: 'linear-gradient(135deg,#7c3aed,#db2777)',

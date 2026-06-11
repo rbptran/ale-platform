@@ -117,7 +117,7 @@ export default function LessonViewer() {
                            background: isActive ? '#e0e7ff' : 'transparent',
                            borderLeft: isActive ? '3px solid #4f46e5' : '3px solid transparent' }}>
                   <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>
-                    {isDoneLesson ? '✅' : l.type === 'video' ? '▶️' : l.type === 'quiz' ? '📝' : l.type === 'project' ? '🔨' : '📄'}
+                    {isDoneLesson ? '✅' : l.type === 'video' ? '▶️' : l.type === 'quiz' ? '📝' : l.type === 'project' ? '🔨' : l.type === 'simulation' ? '🔬' : '📄'}
                   </span>
                   <span style={{ fontSize: 13, color: isActive ? '#4f46e5' : '#374151',
                                  fontWeight: isActive ? 600 : 400, lineHeight: 1.3 }}>
@@ -138,6 +138,18 @@ export default function LessonViewer() {
       {/* ── Main content ─────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', background: '#f8fafc' }}>
 
+        {/* Maintenance banner */}
+        {lesson?.module?.course?.maintenanceMessage && (
+          <div style={{ background: '#fffbeb', borderBottom: '1px solid #fcd34d',
+                        padding: '12px 24px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>🔧</span>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#92400e' }}>Course under maintenance — </span>
+              <span style={{ fontSize: 14, color: '#78350f' }}>{lesson.module.course.maintenanceMessage}</span>
+            </div>
+          </div>
+        )}
+
         {/* Completion banner */}
         {showComplete && (
           <div style={{ background: '#d1fae5', borderBottom: '1px solid #6ee7b7',
@@ -157,8 +169,8 @@ export default function LessonViewer() {
           <div style={{ marginBottom: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
-                             background: lesson?.type === 'video' ? '#dbeafe' : lesson?.type === 'project' ? '#fef3c7' : '#e0e7ff',
-                             color: lesson?.type === 'video' ? '#1d4ed8' : lesson?.type === 'project' ? '#92400e' : '#4f46e5' }}>
+                             background: lesson?.type === 'video' ? '#dbeafe' : lesson?.type === 'project' ? '#fef3c7' : lesson?.type === 'simulation' ? '#d1fae5' : '#e0e7ff',
+                             color: lesson?.type === 'video' ? '#1d4ed8' : lesson?.type === 'project' ? '#92400e' : lesson?.type === 'simulation' ? '#065f46' : '#4f46e5' }}>
                 {lesson?.type?.toUpperCase()}
               </span>
               {lesson?.estimatedMins && (
@@ -176,8 +188,24 @@ export default function LessonViewer() {
             </div>
           </div>
 
-          {/* ── Video lesson ───────────────────────────────────────── */}
-          {lesson?.type === 'video' && lesson?.videoAssetId && (
+          {/* ── Video lesson — videoUrl (embed URL) ────────────────── */}
+          {lesson?.type === 'video' && lesson?.videoUrl && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0,
+                            borderRadius: 12, overflow: 'hidden', background: '#000' }}>
+                <iframe
+                  src={lesson.videoUrl}
+                  title={lesson.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Video lesson — legacy videoAssetId (YouTube ID) ────── */}
+          {lesson?.type === 'video' && !lesson?.videoUrl && lesson?.videoAssetId && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0,
                             borderRadius: 12, overflow: 'hidden', background: '#000' }}>
@@ -197,11 +225,56 @@ export default function LessonViewer() {
             </div>
           )}
 
-          {/* ── Text / Project content ─────────────────────────────── */}
+          {/* ── Video lesson — no URL yet (admin placeholder) ──────── */}
+          {lesson?.type === 'video' && !lesson?.videoUrl && !lesson?.videoAssetId && (
+            <div style={{ marginBottom: 28, padding: '28px 32px', borderRadius: 12,
+                          border: '2px dashed #e2e8f0', background: '#f8fafc', textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>▶️</div>
+              <div style={{ fontWeight: 600, color: '#374151', marginBottom: 4 }}>Video Coming Soon</div>
+              <div style={{ fontSize: 13, color: '#94a3b8' }}>The admin hasn't added a video URL yet. Check the notes below.</div>
+            </div>
+          )}
+
+          {/* ── Simulation lesson ──────────────────────────────────── */}
+          {lesson?.type === 'simulation' && lesson?.simulationUrl && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0',
+                            background: '#000', minHeight: 480 }}>
+                <iframe
+                  src={lesson.simulationUrl}
+                  title={lesson.title}
+                  allow="fullscreen"
+                  allowFullScreen
+                  style={{ width: '100%', minHeight: 480, border: 'none', display: 'block' }}
+                />
+              </div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>
+                Interactive simulation — use fullscreen for the best experience.
+              </div>
+            </div>
+          )}
+
+          {/* ── Simulation — no URL yet ────────────────────────────── */}
+          {lesson?.type === 'simulation' && !lesson?.simulationUrl && (
+            <div style={{ marginBottom: 28, padding: '28px 32px', borderRadius: 12,
+                          border: '2px dashed #e2e8f0', background: '#f8fafc', textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🔬</div>
+              <div style={{ fontWeight: 600, color: '#374151', marginBottom: 4 }}>Simulation Coming Soon</div>
+              <div style={{ fontSize: 13, color: '#94a3b8' }}>The interactive simulation hasn't been added yet. Follow the instructions below.</div>
+            </div>
+          )}
+
+          {/* ── Text / Project / notes content ────────────────────── */}
           {lesson?.contentBody && (
             <div style={{ background: '#fff', borderRadius: 12, padding: '28px 32px',
                           border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,.04)',
                           marginBottom: 28 }}>
+              {(lesson.type === 'video' || lesson.type === 'simulation') && (
+                <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1,
+                             color: '#94a3b8', marginTop: 0, marginBottom: 12 }}>
+                  {lesson.type === 'video' ? 'Notes & Transcript' : 'Instructions & Context'}
+                </p>
+              )}
               <MarkdownRenderer content={lesson.contentBody} />
             </div>
           )}

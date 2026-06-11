@@ -1,9 +1,7 @@
 // frontend/src/pages/AdminCourses.jsx
-// Phase B + C — Admin Course Management UI
+// Phase B — Admin Course Management UI
 // Multi-step wizard: Course Basics → Modules → Lessons → Questions → Review & Publish
 // Features: enrolment count badges, publish confirmation, maintenance mode, learner notifications
-// Phase C: ✨ Generate with AI button — calls POST /admin/courses/generate (Gemini Flash)
-//          Pre-fills wizard with generated course for review before publishing
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
@@ -66,6 +64,8 @@ const Btn = ({ onClick, children, variant = 'primary', disabled = false, small =
   const styles = {
     primary:   { background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none' },
     secondary: { background: '#f1f5f9', color: '#374151', border: '1.5px solid #e2e8f0' },
+    ai:        { background: 'linear-gradient(135deg,#0ea5e9,#6366f1)', color: '#fff', border: 'none' },
+    ai2:       { background: 'linear-gradient(135deg,#10b981,#0ea5e9)', color: '#fff', border: 'none' },
     danger:    { background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca' },
     success:   { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' },
     warning:   { background: '#fffbeb', color: '#b45309', border: '1.5px solid #fcd34d' },
@@ -145,7 +145,7 @@ const defaultCourse   = () => ({ id: null, slug: '', title: '', description: '',
                                   estimatedHours: 10, tags: [], status: 'draft',
                                   prerequisiteCourseIds: [], displayOrder: 1 });
 const defaultModule   = () => ({ id: null, title: '', displayOrder: 1, estimatedMins: 60, isFreePreview: false, lessons: [] });
-const defaultLesson   = () => ({ id: null, title: '', type: 'text', displayOrder: 1, estimatedMins: 20, xpReward: 10, contentBody: '', videoAssetId: '' });
+const defaultLesson   = () => ({ id: null, title: '', type: 'text', displayOrder: 1, estimatedMins: 20, xpReward: 10, contentBody: '', videoUrl: '', simulationUrl: '', videoAssetId: '' });
 const defaultQuestion = () => ({ text: '', options: ['', '', '', ''], correctAnswer: '', explanation: '', skillTag: '', xpReward: 5 });
 
 // ── Step 1: Course Basics ─────────────────────────────────────────────────────
@@ -342,36 +342,49 @@ function StepLessons({ modules, setModules }) {
                   onChange={v => updateLesson(activeModIdx, j, 'title', v)} placeholder="Introduction" />
                 <Select label="Type" value={les.type}
                   onChange={v => updateLesson(activeModIdx, j, 'type', v)}
-                  options={['text', 'video', 'project'].map(t => ({ value: t, label: t }))} />
+                  options={['text', 'video', 'project', 'simulation', 'quiz'].map(t => ({ value: t, label: t }))} />
                 <Input label="Est. Minutes" type="number" value={les.estimatedMins}
                   onChange={v => updateLesson(activeModIdx, j, 'estimatedMins', Number(v))} />
                 <Input label="XP Reward" type="number" value={les.xpReward}
                   onChange={v => updateLesson(activeModIdx, j, 'xpReward', Number(v))} />
               </div>
-              {les.type === 'video' ? (
-                <Input label="YouTube Video ID" value={les.videoAssetId}
-                  onChange={v => updateLesson(activeModIdx, j, 'videoAssetId', v)}
-                  placeholder="dQw4w9WgXcQ (the part after watch?v=)"
-                  hint="Only the video ID, not the full URL." />
-              ) : (
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
-                    Lesson Content <span style={{ fontWeight: 400, color: '#94a3b8' }}>(Markdown)</span>
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <textarea value={les.contentBody} rows={12}
-                      onChange={e => updateLesson(activeModIdx, j, 'contentBody', e.target.value)}
-                      placeholder="## Introduction&#10;&#10;Write your lesson content in **Markdown** here."
-                      style={{ padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8,
-                               fontSize: 13, fontFamily: 'monospace', resize: 'vertical' }} />
-                    <div style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8,
-                                  background: '#fafafa', overflowY: 'auto', maxHeight: 280 }}>
-                      <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 1 }}>Preview</p>
-                      <MiniMD src={les.contentBody} />
-                    </div>
+              {les.type === 'video' && (
+                <Input label="YouTube / Vimeo Embed URL" value={les.videoUrl || ''}
+                  onChange={v => updateLesson(activeModIdx, j, 'videoUrl', v)}
+                  placeholder="https://www.youtube.com/embed/VIDEO_ID"
+                  hint="Use the embed URL (youtube.com/embed/...). Leave blank if not yet found." />
+              )}
+              {les.type === 'simulation' && (
+                <Input label="Simulation Embed URL" value={les.simulationUrl || ''}
+                  onChange={v => updateLesson(activeModIdx, j, 'simulationUrl', v)}
+                  placeholder="https://... (H5P, Articulate Rise, Adobe Captivate, etc.)"
+                  hint="Paste the embed/iframe URL from your simulation tool." />
+              )}
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                  {les.type === 'video' ? 'Notes / Transcript (optional)' :
+                   les.type === 'simulation' ? 'Instructions / Context (optional)' :
+                   <>Lesson Content <span style={{ fontWeight: 400, color: '#94a3b8' }}>(Markdown)</span></>}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <textarea value={les.contentBody} rows={les.type === 'video' || les.type === 'simulation' ? 6 : 12}
+                    onChange={e => updateLesson(activeModIdx, j, 'contentBody', e.target.value)}
+                    placeholder={
+                      les.type === 'video'
+                        ? '## What You Will Learn\n\nAdd notes, key takeaways, or a transcript here...'
+                        : les.type === 'simulation'
+                        ? '## Instructions\n\nDescribe what learners should do in the simulation...'
+                        : '## Introduction\n\nWrite your lesson content in **Markdown** here.'
+                    }
+                    style={{ padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8,
+                             fontSize: 13, fontFamily: 'monospace', resize: 'vertical' }} />
+                  <div style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8,
+                                background: '#fafafa', overflowY: 'auto', maxHeight: 280 }}>
+                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 1 }}>Preview</p>
+                    <MiniMD src={les.contentBody} />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
@@ -613,322 +626,165 @@ function NotifyModal({ course, onClose }) {
   );
 }
 
-// ── AI Generate Modal ─────────────────────────────────────────────────────────
-function GenerateModal({ onClose, onGenerated }) {
-  const [topic, setTopic]     = useState('');
-  const [level, setLevel]     = useState('Beginner');
-  const [numModules, setNumModules] = useState(3);
-  const [audience, setAudience]    = useState('');
+// ── Generate with AI modal (topic-based) ─────────────────────────────────────
+function GenerateModal({ onClose, onDone }) {
+  const [topic, setTopic]       = useState('');
+  const [level, setLevel]       = useState('Beginner');
+  const [hours, setHours]       = useState(4);
+  const [modules, setModules]   = useState(4);
   const [generating, setGenerating] = useState(false);
-  const [error, setError]          = useState('');
+  const [error, setError]       = useState('');
 
   const generate = async () => {
     if (!topic.trim()) { setError('Topic is required'); return; }
-    setGenerating(true);
-    setError('');
+    setGenerating(true); setError('');
     try {
-      const { data } = await api.post('/admin/courses/generate', {
-        topic: topic.trim(),
-        level,
-        numModules: parseInt(numModules),
-        targetAudience: audience.trim() || undefined,
+      await api.post('/admin/courses/generate', {
+        topic: topic.trim(), level, estimatedHours: hours, modulesCount: modules,
       });
-      onGenerated(data.course);
-      onClose();
+      onDone('✅ Course generated and saved as draft!');
     } catch (e) {
       setError(e.response?.data?.error || e.message || 'Generation failed');
-    } finally { setGenerating(false); }
+      setGenerating(false);
+    }
   };
 
   return (
-    <Modal title="✨ Generate Course with AI" onClose={onClose}>
-      <p style={{ fontSize: 14, color: '#64748b', marginTop: 0, marginBottom: 16 }}>
-        Describe a topic and Gemini will generate a full course structure — modules, lessons, content, and quiz questions — ready for you to review and publish.
-      </p>
-      <Input label="Topic" value={topic} onChange={setTopic} required
-        placeholder="e.g. Python for Data Science, Agile Project Management, SQL fundamentals" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-        <Select label="Level" value={level} onChange={setLevel}
-          options={['Beginner', 'Intermediate', 'Advanced'].map(l => ({ value: l, label: l }))} />
-        <Select label="Modules" value={String(numModules)} onChange={v => setNumModules(Number(v))}
-          options={[2,3,4,5,6].map(n => ({ value: String(n), label: `${n} modules` }))} />
-      </div>
-      <Input label="Target Audience (optional)" value={audience} onChange={setAudience}
-        placeholder="e.g. junior developers, marketing professionals" />
-      {error && <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</div>}
-      {generating && (
-        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
-                      padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#0369a1' }}>
-          ✨ AI is generating your course… this takes 15-30 seconds.
+    <Modal title="🤖 Generate Course with AI" onClose={onClose}>
+      {generating ? (
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⚙️</div>
+          <p style={{ color: '#4f46e5', fontWeight: 600, fontSize: 15 }}>Generating course content…</p>
+          <p style={{ color: '#94a3b8', fontSize: 13 }}>This can take 20–40 seconds</p>
         </div>
+      ) : (
+        <>
+          <Input label="Topic" value={topic} onChange={setTopic} required
+            placeholder="e.g. Introduction to Machine Learning" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '12px 0' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Level</label>
+              <select value={level} onChange={e => setLevel(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
+                {['Beginner','Intermediate','Advanced'].map(l => <option key={l}>{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Est. Hours</label>
+              <input type="number" min={1} max={40} value={hours} onChange={e => setHours(Number(e.target.value))}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Number of modules</label>
+            <input type="number" min={1} max={12} value={modules} onChange={e => setModules(Number(e.target.value))}
+              style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+          </div>
+          {error && <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <Btn onClick={onClose} variant="secondary" small>Cancel</Btn>
+            <Btn onClick={generate} small>🤖 Generate Course</Btn>
+          </div>
+        </>
       )}
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <Btn onClick={onClose} variant="secondary" disabled={generating} small>Cancel</Btn>
-        <Btn onClick={generate} disabled={generating} small>
-          {generating ? '⏳ Generating…' : '✨ Generate Course'}
-        </Btn>
-      </div>
     </Modal>
   );
 }
 
-// ── Generate For Learner Modal ────────────────────────────────────────────────
-function ProficiencyBar({ pct, label }) {
-  const color = pct >= 70 ? '#16a34a' : pct >= 30 ? '#f59e0b' : '#dc2626';
-  return (
-    <div style={{ marginBottom: 6 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 2 }}>
-        <span style={{ color: '#374151' }}>{label}</span>
-        <span style={{ color, fontWeight: 700 }}>{pct}%</span>
-      </div>
-      <div style={{ background: '#e2e8f0', borderRadius: 99, height: 6 }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: color, transition: 'width .3s' }} />
-      </div>
-    </div>
-  );
-}
-
-function GenerateForLearnerModal({ onClose, onGenerated }) {
-  const [users, setUsers]           = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
-  const [search, setSearch]         = useState('');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [context, setContext]       = useState(null);
-  const [loadingCtx, setLoadingCtx] = useState(false);
-  const [numModules, setNumModules] = useState(3);
+// ── Generate for Learner modal ────────────────────────────────────────────────
+function GenerateForLearnerModal({ onClose, onDone }) {
+  const [users, setUsers]       = useState([]);
+  const [userId, setUserId]     = useState('');
+  const [context, setContext]   = useState(null);
+  const [topic, setTopic]       = useState('');
+  const [loading, setLoading]   = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [error, setError]           = useState('');
+  const [error, setError]       = useState('');
 
-  // Load all learners
   useEffect(() => {
-    api.get('/admin/users').then(r => {
-      setUsers(r.data.users || []);
-      setLoadingUsers(false);
-    }).catch(() => setLoadingUsers(false));
+    api.get('/admin/users').then(({ data }) => {
+      setUsers((data.users || []).filter(u => u.role !== 'admin'));
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  // Load learner context when user selected
-  const selectUser = async (user) => {
-    setSelectedUser(user);
-    setContext(null);
-    setError('');
-    setLoadingCtx(true);
+  const loadContext = async (uid) => {
+    setUserId(uid); setContext(null);
+    if (!uid) return;
     try {
-      const { data } = await api.get(`/admin/courses/learner-context/${user.id}`);
-      setContext(data.context);
-    } catch (e) {
-      setError('Failed to load learner profile: ' + (e.response?.data?.error || e.message));
-    } finally { setLoadingCtx(false); }
+      const { data } = await api.get(`/admin/courses/learner-context/${uid}`);
+      setContext(data);
+    } catch {}
   };
 
   const generate = async () => {
-    if (!selectedUser) return;
-    setGenerating(true);
-    setError('');
+    if (!userId) { setError('Select a learner'); return; }
+    setGenerating(true); setError('');
     try {
-      const { data } = await api.post(`/admin/courses/generate-for-learner/${selectedUser.id}`, {
-        numModules: parseInt(numModules),
-      });
-      onGenerated(data.course, data.context);
-      onClose();
+      await api.post(`/admin/courses/generate-for-learner/${userId}`, { topic: topic.trim() || undefined });
+      onDone('✅ Personalised course generated and saved as draft!');
     } catch (e) {
       setError(e.response?.data?.error || e.message || 'Generation failed');
-    } finally { setGenerating(false); }
+      setGenerating(false);
+    }
   };
 
-  const filtered = users.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 780,
-                    maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-                    boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
-
-        {/* Header */}
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e2e8f0',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1e293b' }}>
-              🎯 Generate Personalised Course for Learner
-            </h3>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-              AI analyses skill gaps, assessment scores, and career goal to generate a targeted course.
-            </p>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20,
-                                            cursor: 'pointer', color: '#94a3b8', padding: 4 }}>✕</button>
+    <Modal title="🎯 Generate Course for Learner" onClose={onClose}>
+      {generating ? (
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⚙️</div>
+          <p style={{ color: '#4f46e5', fontWeight: 600, fontSize: 15 }}>Generating personalised course…</p>
+          <p style={{ color: '#94a3b8', fontSize: 13 }}>Analysing learner profile and skill gaps…</p>
         </div>
-
-        {/* Body */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-
-          {/* Left: learner list */}
-          <div style={{ width: 260, borderRight: '1px solid #e2e8f0', display: 'flex',
-                        flexDirection: 'column', flexShrink: 0 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search learners…"
-                style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #e2e8f0',
-                         borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {loadingUsers
-                ? <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
-                : filtered.length === 0
-                  ? <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No learners found</div>
-                  : filtered.map(u => {
-                      const isSelected = selectedUser?.id === u.id;
-                      const enrolCount = u._count?.enrolments ?? 0;
-                      const xp = u.profile?.xpTotal ?? 0;
-                      return (
-                        <div key={u.id} onClick={() => selectUser(u)}
-                          style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9',
-                                   background: isSelected ? '#ede9fe' : 'transparent',
-                                   borderLeft: isSelected ? '3px solid #4f46e5' : '3px solid transparent' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? '#4f46e5' : '#1e293b' }}>
-                            {u.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                            {u.email}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                            {enrolCount} course{enrolCount !== 1 ? 's' : ''} · {xp} XP
-                          </div>
-                        </div>
-                      );
-                    })
-              }
-            </div>
-          </div>
-
-          {/* Right: profile + generate */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-            {!selectedUser && (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>👈</div>
-                <div style={{ fontSize: 14 }}>Select a learner to see their profile and generate a course</div>
-              </div>
-            )}
-
-            {selectedUser && loadingCtx && (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: 14 }}>
-                Loading profile…
-              </div>
-            )}
-
-            {selectedUser && context && (
-              <div>
-                {/* Profile header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#ede9fe',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 18, fontWeight: 700, color: '#4f46e5' }}>
-                    {context.name[0]}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>{context.name}</div>
-                    <div style={{ fontSize: 13, color: '#64748b' }}>
-                      {context.currentRole || 'Role not set'} · Level {context.level} · {context.xp} XP
-                    </div>
-                  </div>
+      ) : (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Select learner</label>
+            {loading ? <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading users…</p>
+              : users.length === 0 ? (
+                <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8,
+                              padding: '10px 14px', fontSize: 13, color: '#92400e' }}>
+                  No learner accounts yet. Users need to register first before you can generate personalised courses for them.
                 </div>
-
-                {/* Career goal */}
-                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
-                              padding: '10px 14px', marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0369a1', textTransform: 'uppercase',
-                                letterSpacing: '.5px', marginBottom: 4 }}>Career Goal</div>
-                  <div style={{ fontSize: 14, color: '#1e293b', fontWeight: 600 }}>
-                    {context.careerGoal || <em style={{ color: '#94a3b8', fontWeight: 400 }}>Not set — AI will infer from skills</em>}
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
-                  {[
-                    { label: 'Completed', value: context.completedCourses.length, icon: '✅' },
-                    { label: 'In Progress', value: context.activeCourses.length, icon: '📖' },
-                    { label: 'Lessons Done', value: context.lessonsCompleted, icon: '📝' },
-                    { label: 'Avg Score', value: context.avgAssessmentScore !== null ? `${context.avgAssessmentScore}%` : 'N/A', icon: '🎯' },
-                  ].map(s => (
-                    <div key={s.label} style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 18 }}>{s.icon}</div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#1e293b' }}>{s.value}</div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Skill proficiency */}
-                {(context.proficientSkills.length + context.developingSkills.length + context.weakSkills.length) > 0 && (
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8,
-                                  textTransform: 'uppercase', letterSpacing: '.5px' }}>Skill Proficiency</div>
-                    {[...context.proficientSkills, ...context.developingSkills, ...context.weakSkills].map(s => (
-                      <ProficiencyBar key={s.name} label={s.name} pct={s.pct} />
-                    ))}
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
-                      🟢 Proficient ≥70% &nbsp;🟡 Developing 30–69% &nbsp;🔴 Weak &lt;30%
-                    </div>
-                  </div>
-                )}
-
-                {/* Completed courses */}
-                {context.completedCourses.length > 0 && (
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6,
-                                  textTransform: 'uppercase', letterSpacing: '.5px' }}>Completed Courses</div>
-                    {context.completedCourses.map((c, i) => (
-                      <div key={i} style={{ fontSize: 12, color: '#64748b', marginBottom: 3 }}>
-                        ✅ {c.title} <span style={{ color: '#94a3b8' }}>({c.tags.join(', ') || 'no tags'})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* What AI will focus on */}
-                <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 8,
-                              padding: '10px 14px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#854d0e', marginBottom: 4 }}>
-                    🎯 AI will target:
-                  </div>
-                  <div style={{ fontSize: 13, color: '#78350f' }}>
-                    {context.weakSkills.length > 0
-                      ? `Weak skills: ${context.weakSkills.map(s => s.name).join(', ')}`
-                      : context.developingSkills.length > 0
-                        ? `Developing skills: ${context.developingSkills.map(s => s.name).join(', ')}`
-                        : context.careerGoal
-                          ? `Gaps between current skills and goal: "${context.careerGoal}"`
-                          : 'Career-relevant topics inferred from their profile'
-                    }
-                  </div>
-                </div>
-
-                {/* Generate controls */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Select label="" value={String(numModules)} onChange={v => setNumModules(Number(v))}
-                    options={[2,3,4,5,6].map(n => ({ value: String(n), label: `${n} modules` }))} />
-                  <Btn onClick={generate} disabled={generating}>
-                    {generating ? '⏳ Generating…' : '🎯 Generate Personalised Course'}
-                  </Btn>
-                </div>
-                {generating && (
-                  <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
-                                padding: '10px 14px', marginTop: 10, fontSize: 13, color: '#0369a1' }}>
-                    ✨ AI is analysing {context.name}&#39;s profile and generating a targeted course… (~15-30 seconds)
-                  </div>
-                )}
-                {error && <div style={{ color: '#dc2626', fontSize: 13, marginTop: 10 }}>{error}</div>}
-              </div>
+              ) : (
+              <select value={userId} onChange={e => loadContext(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
+                <option value="">— choose a learner —</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+              </select>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+
+          {context && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
+                          padding: '12px 16px', marginBottom: 14, fontSize: 13 }}>
+              <strong style={{ color: '#1e293b' }}>{context.name}</strong>
+              {context.profile && (
+                <div style={{ color: '#64748b', marginTop: 4 }}>
+                  {[context.profile.currentRole, context.profile.industry, context.profile.goalType && `Goal: ${context.profile.goalType}`]
+                    .filter(Boolean).join(' · ')}
+                </div>
+              )}
+              {context.topSkillGaps?.length > 0 && (
+                <div style={{ marginTop: 6, color: '#7c3aed' }}>
+                  Top gaps: {context.topSkillGaps.map(g => g.skill).join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          <Input label="Topic override (optional)" value={topic} onChange={setTopic}
+            placeholder="Leave blank to auto-select from skill gaps" />
+
+          {error && <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+            <Btn onClick={onClose} variant="secondary" small>Cancel</Btn>
+            <Btn onClick={generate} disabled={!userId} small>🎯 Generate for Learner</Btn>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
 
@@ -947,6 +803,9 @@ export default function AdminCourses() {
   // Modals
   const [maintenanceTarget, setMaintenanceTarget] = useState(null);
   const [notifyTarget, setNotifyTarget]           = useState(null);
+  const [deleteTarget, setDeleteTarget]           = useState(null);
+  const [deleteError, setDeleteError]             = useState('');
+  const [deleting, setDeleting]                   = useState(false);
   const [showGenerate, setShowGenerate]           = useState(false);
   const [showGenerateForLearner, setShowGenerateForLearner] = useState(false);
 
@@ -978,95 +837,6 @@ export default function AdminCourses() {
     setView('wizard');
   };
 
-  // Called when either GenerateModal or GenerateForLearnerModal returns a course object
-  // ctx is optional — only present for learner-personalised courses
-  const startFromGenerated = (generated, ctx) => {
-    // Coerce-safe slug: lowercase, only a-z 0-9 hyphens, no leading/trailing/consecutive hyphens
-    const safeSlug = raw =>
-      (raw || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')   // non-alphanumeric → hyphen
-        .replace(/-{2,}/g, '-')         // collapse consecutive hyphens
-        .replace(/^-+|-+$/g, '')        // strip leading/trailing hyphens
-        .substring(0, 80) || 'ai-course';
-
-    // Coerce-safe integer (AI may return strings or floats)
-    const toInt  = (v, def) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 ? n : def; };
-    const toNum  = (v, def) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : def; };
-
-    // Validate level — AI occasionally returns unexpected values
-    const validLevels = ['Beginner', 'Intermediate', 'Advanced'];
-    const safeLevel   = validLevels.includes(generated.level) ? generated.level : 'Beginner';
-
-    // Tags must all be strings
-    const safeTags = (generated.tags || [])
-      .map(t => String(t).trim())
-      .filter(t => t.length > 0);
-
-    setCourse({
-      id: null,
-      slug:        safeSlug(generated.slug || generated.title),
-      title:       (generated.title || '').trim(),
-      description: (generated.description || '').trim(),
-      level:       safeLevel,
-      estimatedHours: toNum(generated.estimatedHours, 10),
-      tags:        safeTags,
-      status:      'draft',
-      prerequisiteCourseIds: [],
-      displayOrder: courses.length + 1,
-    });
-
-    setModules((generated.modules || []).map((m, mi) => ({
-      id: null,
-      title:        (m.title || `Module ${mi + 1}`).trim(),
-      displayOrder: mi + 1,
-      estimatedMins: toInt(m.estimatedMins, 60),
-      isFreePreview: mi === 0,
-      lessons: (m.lessons || []).map((l, li) => ({
-        id: null,
-        title:        (l.title || `Lesson ${li + 1}`).trim(),
-        type:         ['text','video','quiz','project','simulation'].includes(l.type) ? l.type : 'text',
-        displayOrder: li + 1,
-        estimatedMins: toInt(l.estimatedMins, 20),
-        xpReward:      toInt(l.xpReward, 10),
-        contentBody:   l.contentBody || '',
-        videoAssetId:  '',
-      })),
-    })));
-
-    setQuestions((generated.questions || []).map(q => {
-      // Normalise options to plain strings for the wizard UI
-      const opts = (q.options || []).map(o => (typeof o === 'string' ? o : o?.text || ''));
-
-      // correctAnswer from AI is a letter ('a'-'d'); convert to the option text
-      const resolveAnswer = (ca) => {
-        if (typeof ca !== 'string') return opts[0] || '';
-        const idx = ['a','b','c','d'].indexOf(ca.toLowerCase());
-        return idx >= 0 ? (opts[idx] || ca) : ca;
-      };
-      const ca = Array.isArray(q.correctAnswer) ? (q.correctAnswer[0] || '') : (q.correctAnswer || '');
-
-      return {
-        _saved:       false,
-        text:         (q.text || '').trim(),
-        options:      opts,
-        correctAnswer: resolveAnswer(ca),
-        explanation:  (q.explanation || '').trim(),
-        skillTag:     String((q.skillTags || [])[0] || '').trim(),
-        xpReward:     toInt(q.xpReward, 5),
-      };
-    }));
-
-    setStep(0);
-    setIsEdit(false);
-    setEditEnrolCount(0);
-    setSaveError('');
-    setSuccessMsg(ctx
-      ? `🎯 Personalised for ${ctx.name}! Review each step, then publish.`
-      : '✨ AI generated! Review and edit each step, then publish.');
-    setView('wizard');
-  };
-
   const startEdit = async (courseId) => {
     try {
       const { data } = await api.get(`/admin/courses/${courseId}`);
@@ -1085,6 +855,7 @@ export default function AdminCourses() {
           id: l.id, title: l.title, type: l.type || 'text',
           displayOrder: l.displayOrder, estimatedMins: l.estimatedMins || 20,
           xpReward: l.xpReward || 10, contentBody: l.contentBody || '',
+          videoUrl: l.videoUrl || '', simulationUrl: l.simulationUrl || '',
           videoAssetId: l.videoAssetId || '',
         })),
       })));
@@ -1109,74 +880,65 @@ export default function AdminCourses() {
     }
   };
 
+  const handleDelete = async (force = false) => {
+    if (!deleteTarget) return;
+    setDeleting(true); setDeleteError('');
+    try {
+      await api.delete(`/admin/courses/${deleteTarget.id}${force ? '?force=true' : ''}`);
+      setDeleteTarget(null);
+      setSuccessMsg(`🗑️ "${deleteTarget.title}" deleted.`);
+      loadCourses();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (e) {
+      setDeleteError(e.response?.data?.error || 'Delete failed.');
+    } finally { setDeleting(false); }
+  };
+
   const handleSave = async (status) => {
     setSaving(true);
     setSaveError('');
     try {
-      // Coerce to correct types before posting — prevents Zod validation failures
-      // (AI or user edits can leave numbers as strings)
-      const toInt = (v, def) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 ? n : def; };
-      const toNum = (v, def) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : def; };
-
-      const coursePayload = {
-        slug:                  String(course.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-{2,}/g, '-').replace(/^-+|-+$/g, ''),
-        title:                 course.title,
-        description:           course.description || undefined,
-        level:                 course.level,
-        estimatedHours:        toNum(course.estimatedHours, 10),
-        tags:                  (course.tags || []).map(t => String(t).trim()).filter(Boolean),
-        prerequisiteCourseIds: course.prerequisiteCourseIds || [],
-        displayOrder:          toInt(course.displayOrder, 1),
-        status,
-      };
-
       let courseId = course.id;
       if (isEdit && courseId) {
-        await api.put(`/admin/courses/${courseId}`, coursePayload);
+        await api.put(`/admin/courses/${courseId}`, { ...course, status });
       } else {
-        const { data } = await api.post('/admin/courses', coursePayload);
+        const { data } = await api.post('/admin/courses', { ...course, status });
         courseId = data.course.id;
       }
       for (const mod of modules) {
         let modId = mod.id;
-        if (!modId) {
-          const { data } = await api.post(`/admin/courses/${courseId}/modules`, {
-            title: mod.title, displayOrder: toInt(mod.displayOrder, 1),
-            estimatedMins: toInt(mod.estimatedMins, 60), isFreePreview: !!mod.isFreePreview,
-          });
+        const modPayload = {
+          title: mod.title, displayOrder: mod.displayOrder,
+          estimatedMins: mod.estimatedMins, isFreePreview: mod.isFreePreview,
+        };
+        if (modId) {
+          await api.put(`/admin/modules/${modId}`, modPayload);
+        } else {
+          const { data } = await api.post(`/admin/courses/${courseId}/modules`, modPayload);
           modId = data.module.id;
         }
         for (const les of (mod.lessons || [])) {
-          if (!les.id) {
-            await api.post(`/admin/modules/${modId}/lessons`, {
-              title: les.title,
-              type: les.type || 'text',
-              displayOrder: toInt(les.displayOrder, 1),
-              estimatedMins: toInt(les.estimatedMins, 20),
-              xpReward: toInt(les.xpReward, 10),
-              contentBody: les.contentBody || undefined,
-              videoAssetId: les.videoAssetId || undefined,
-            });
+          const lessonPayload = {
+            title: les.title, type: les.type, displayOrder: les.displayOrder,
+            estimatedMins: les.estimatedMins, xpReward: les.xpReward,
+            contentBody: les.contentBody, videoUrl: les.videoUrl || '',
+            simulationUrl: les.simulationUrl || '', videoAssetId: les.videoAssetId,
+          };
+          if (les.id) {
+            await api.put(`/admin/lessons/${les.id}`, lessonPayload);
+          } else {
+            await api.post(`/admin/modules/${modId}/lessons`, lessonPayload);
           }
         }
       }
       for (const q of questions) {
         if (!q._saved) {
-          // Ensure options are non-empty strings and text meets min(5) chars
-          const cleanOptions = (q.options || [])
-            .map((text, i) => ({ id: String.fromCharCode(97 + i), text: String(text || `Option ${i + 1}`) }));
-          const questionText = String(q.text || '').trim();
-          if (questionText.length < 5) continue; // skip malformed questions silently
           await api.post('/admin/questions', {
-            courseId,
-            text: questionText,
-            type: 'mcq',
-            options: cleanOptions,
-            correctAnswer: [String(q.correctAnswer || cleanOptions[0]?.text || 'a')],
-            explanation: q.explanation || undefined,
-            difficulty: 'medium',
-            skillTags: q.skillTag ? [String(q.skillTag).trim()] : [],
-            xpReward: toInt(q.xpReward, 5),
+            courseId, text: q.text,
+            options: q.options.map((text, i) => ({ id: String.fromCharCode(97 + i), text })),
+            correctAnswer: [q.correctAnswer],
+            explanation: q.explanation, difficulty: 'medium',
+            skillTags: q.skillTag ? [q.skillTag] : [], xpReward: q.xpReward,
           });
         }
       }
@@ -1185,7 +947,9 @@ export default function AdminCourses() {
       loadCourses();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (e) {
-      setSaveError(e.response?.data?.error || e.message || 'Save failed');
+      const details = e.response?.data?.details;
+      const fieldMsg = details?.map(d => `${d.path?.join('.')}: ${d.message}`).join('; ');
+      setSaveError(fieldMsg || e.response?.data?.error || e.message || 'Save failed');
     } finally { setSaving(false); }
   };
 
@@ -1210,19 +974,9 @@ export default function AdminCourses() {
         </div>
         {view === 'list'
           ? (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button onClick={() => setShowGenerateForLearner(true)}
-                style={{ padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 700,
-                         cursor: 'pointer', border: 'none', whiteSpace: 'nowrap',
-                         background: 'linear-gradient(135deg,#059669,#0d9488)', color: '#fff' }}>
-                🎯 Generate for Learner
-              </button>
-              <button onClick={() => setShowGenerate(true)}
-                style={{ padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 700,
-                         cursor: 'pointer', border: 'none', whiteSpace: 'nowrap',
-                         background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff' }}>
-                ✨ Generate with AI
-              </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Btn onClick={() => setShowGenerate(true)} variant="ai">🤖 Generate with AI</Btn>
+              <Btn onClick={() => setShowGenerateForLearner(true)} variant="ai2">🎯 Generate for Learner</Btn>
               <Btn onClick={startCreate}>+ Create New Course</Btn>
             </div>
           )
@@ -1312,6 +1066,7 @@ export default function AdminCourses() {
                           {c.status === 'published' && enrolCount > 0 && (
                             <Btn onClick={() => setNotifyTarget(c)} variant="secondary" small>📢 Notify</Btn>
                           )}
+                          <Btn onClick={() => { setDeleteTarget({ id: c.id, title: c.title, enrolCount }); setDeleteError(''); }} variant="danger" small>🗑️ Delete</Btn>
                         </div>
                       </div>
                     </div>
@@ -1347,6 +1102,18 @@ export default function AdminCourses() {
       )}
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
+      {showGenerate && (
+        <GenerateModal
+          onClose={() => setShowGenerate(false)}
+          onDone={(msg) => { setShowGenerate(false); setSuccessMsg(msg); loadCourses(); setTimeout(() => setSuccessMsg(''), 5000); }}
+        />
+      )}
+      {showGenerateForLearner && (
+        <GenerateForLearnerModal
+          onClose={() => setShowGenerateForLearner(false)}
+          onDone={(msg) => { setShowGenerateForLearner(false); setSuccessMsg(msg); loadCourses(); setTimeout(() => setSuccessMsg(''), 5000); }}
+        />
+      )}
       {maintenanceTarget && (
         <MaintenanceModal
           course={maintenanceTarget}
@@ -1360,17 +1127,49 @@ export default function AdminCourses() {
           onClose={() => setNotifyTarget(null)}
         />
       )}
-      {showGenerate && (
-        <GenerateModal
-          onClose={() => setShowGenerate(false)}
-          onGenerated={startFromGenerated}
-        />
-      )}
-      {showGenerateForLearner && (
-        <GenerateForLearnerModal
-          onClose={() => setShowGenerateForLearner(false)}
-          onGenerated={(course, ctx) => startFromGenerated(course, ctx)}
-        />
+
+      {/* ── Delete confirmation ─────────────────────────────────────────── */}
+      {deleteTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 500,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, maxWidth: 440, width: '100%',
+                        boxShadow: '0 25px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 12 }}>⚠️</div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', textAlign: 'center', marginBottom: 8 }}>
+              Delete course?
+            </h3>
+            <p style={{ color: '#64748b', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+              <strong>"{deleteTarget.title}"</strong> will be permanently removed including all modules, lessons, and questions.
+            </p>
+            {deleteTarget.enrolCount > 0 && (
+              <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8,
+                            padding: '10px 14px', fontSize: 13, marginBottom: 8, textAlign: 'center' }}>
+                ⚠️ This course has <strong>{deleteTarget.enrolCount} active enrolment(s)</strong>.
+                Learner progress will be permanently lost. Use <em>Force Delete</em> to proceed anyway.
+              </div>
+            )}
+            {deleteError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626',
+                            padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>
+                {deleteError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20 }}>
+              <Btn onClick={() => { setDeleteTarget(null); setDeleteError(''); }} variant="secondary">
+                Cancel
+              </Btn>
+              {deleteTarget.enrolCount > 0 ? (
+                <Btn onClick={() => handleDelete(true)} variant="danger" disabled={deleting}>
+                  {deleting ? 'Deleting…' : '⚠️ Force Delete'}
+                </Btn>
+              ) : (
+                <Btn onClick={() => handleDelete(false)} variant="danger" disabled={deleting}>
+                  {deleting ? 'Deleting…' : '🗑️ Delete permanently'}
+                </Btn>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

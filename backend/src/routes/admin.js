@@ -9,18 +9,103 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 // Apply auth + admin guard to every route in this file
 router.use(requireAuth, requireAdmin);
 
+// ── Save AI-generated course to DB ─────────────────────────────────────────
+async function saveGeneratedCourse(courseData, createdBy) {
+  const { slugify } = require('../services/aiService');
+  const slug = courseData.slug || slugify(courseData.title);
+
+  // Ensure slug is unique by appending a suffix if needed
+  let finalSlug = slug;
+  const existing = await prisma.course.findUnique({ where: { slug } });
+  if (existing) finalSlug = `${slug}-${Date.now()}`;
+
+  const course = await prisma.course.create({
+    data: {
+      slug:           finalSlug,
+      title:          courseData.title,
+      description:    courseData.description || '',
+      level:          courseData.level || 'Beginner',
+      estimatedHours: courseData.estimatedHours || 4,
+      tags:           courseData.tags || [],
+      status:         'draft',
+      displayOrder:   0,
+      createdBy:      createdBy || null,
+    },
+  });
+
+  for (let mi = 0; mi < (courseData.modules || []).length; mi++) {
+    const mod = courseData.modules[mi];
+    if (!mod?.title) continue; // skip truncated/empty modules
+    const savedMod = await prisma.module.create({
+      data: {
+        courseId:      course.id,
+        title:         mod.title,
+        displayOrder:  mi + 1,
+        estimatedMins: mod.estimatedMins || 60,
+        isFreePreview: mi === 0,
+      },
+    });
+    for (let li = 0; li < (mod.lessons || []).length; li++) {
+      const les = mod.lessons[li];
+      if (!les?.title) continue; // skip truncated/empty lessons
+      const validTypes = ['video', 'text', 'quiz', 'project', 'simulation'];
+      await prisma.lesson.create({
+        data: {
+          moduleId:      savedMod.id,
+          title:         les.title,
+          type:          validTypes.includes(les.type) ? les.type : 'text',
+          displayOrder:  li + 1,
+          contentBody:   les.contentBody || '',
+          videoUrl:      les.videoUrl || null,
+          simulationUrl: les.simulationUrl || null,
+          estimatedMins: les.estimatedMins || 20,
+          xpReward:      les.xpReward || 10,
+        },
+      });
+    }
+  }
+
+  for (const q of (courseData.questions || [])) {
+    // Skip questions with missing required fields (can happen when AI truncates JSON)
+    if (!q.text || !q.options?.length) continue;
+    // correctAnswer may be a string ("a") or array (["a"]) — normalise to array, filter nulls
+    const correctAnswer = Array.isArray(q.correctAnswer)
+      ? q.correctAnswer.filter(v => v != null)
+      : q.correctAnswer ? [q.correctAnswer] : ['a'];
+    if (correctAnswer.length === 0) correctAnswer.push('a');
+    await prisma.question.create({
+      data: {
+        courseId:      course.id,
+        text:          q.text,
+        type:          q.type || 'mcq',
+        options:       q.options || [],
+        correctAnswer,
+        explanation:   q.explanation || '',
+        difficulty:    q.difficulty || 'medium',
+        skillTags:     q.skillTags || [],
+        xpReward:      q.xpReward || 5,
+      },
+    });
+  }
+
+  return course;
+}
+
 // ── Courses ────────────────────────────────────────────────────────────────
 
 const courseSchema = z.object({
-  slug:                  z.string().min(2).max(100).regex(/^[a-z0-9-]+$/),
+  slug:                  z.string().min(2).max(100).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
   title:                 z.string().min(3).max(255),
-  description:           z.string().optional(),
-  thumbnailUrl:          z.string().url().optional(),
+  description:           z.string().optional().default(''),
+  thumbnailUrl:          z.string().optional().transform(v => v || undefined),
   level:                 z.enum(['Beginner', 'Intermediate', 'Advanced']),
-  estimatedHours:        z.number().positive().optional(),
+  estimatedHours:        z.preprocess(
+    val => { if (val === '' || val === null || val === undefined) return undefined; const n = Number(val); return isNaN(n) ? undefined : n; },
+    z.number().min(0).optional()
+  ),
   tags:                  z.array(z.string()).default([]),
   prerequisiteCourseIds: z.array(z.string().uuid()).default([]),
-  displayOrder:          z.number().int().default(0),
+  displayOrder:          z.number().int().min(0).default(0),
   status:                z.enum(['draft', 'published', 'archived']).default('draft'),
   maintenanceMessage:    z.string().nullable().optional(),
 });
@@ -29,6 +114,13 @@ const courseSchema = z.object({
 router.post('/courses', async (req, res, next) => {
   try {
     const data = courseSchema.parse(req.body);
+    const duplicate = await prisma.course.findFirst({
+      where: { title: { equals: data.title, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (duplicate) {
+      return res.status(409).json({ error: `A course named "${data.title}" already exists. Please use a different title.` });
+    }
     const course = await prisma.course.create({
       data: { ...data, createdBy: req.user.id },
     });
@@ -40,6 +132,16 @@ router.post('/courses', async (req, res, next) => {
 router.put('/courses/:id', async (req, res, next) => {
   try {
     const data = courseSchema.partial().parse(req.body);
+    // Check for duplicate title (exclude current course)
+    if (data.title) {
+      const duplicate = await prisma.course.findFirst({
+        where: { title: { equals: data.title, mode: 'insensitive' }, NOT: { id: req.params.id } },
+        select: { id: true },
+      });
+      if (duplicate) {
+        return res.status(409).json({ error: `A course named "${data.title}" already exists. Please use a different title.` });
+      }
+    }
     // Auto-set publishedAt when status flips to published
     if (data.status === 'published') {
       const existing = await prisma.course.findUnique({ where: { id: req.params.id }, select: { publishedAt: true } });
@@ -47,6 +149,25 @@ router.put('/courses/:id', async (req, res, next) => {
     }
     const course = await prisma.course.update({ where: { id: req.params.id }, data });
     res.json({ course });
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/courses/:id — blocks on active enrolments unless ?force=true
+router.delete('/courses/:id', async (req, res, next) => {
+  try {
+    const force = req.query.force === 'true';
+    if (!force) {
+      const activeCount = await prisma.enrolment.count({
+        where: { courseId: req.params.id, status: 'active' },
+      });
+      if (activeCount > 0) {
+        return res.status(409).json({
+          error: `Cannot delete: ${activeCount} learner(s) are actively enrolled. Use force delete to proceed.`,
+        });
+      }
+    }
+    await prisma.course.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Course deleted.' });
   } catch (err) { next(err); }
 });
 
@@ -82,7 +203,7 @@ router.get('/courses/:id', async (req, res, next) => {
               select: {
                 id: true, title: true, type: true,
                 displayOrder: true, estimatedMins: true, xpReward: true,
-                contentBody: true, videoAssetId: true,
+                contentBody: true, videoUrl: true, simulationUrl: true, videoAssetId: true,
               },
             },
           },
@@ -101,19 +222,20 @@ router.get('/courses/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /admin/courses/generate — Gemini AI topic-based course generation
+// POST /admin/courses/generate — AI topic-based course generation
 router.post('/courses/generate', async (req, res, next) => {
   try {
-    const { topic, level, numModules, targetAudience } = req.body;
+    const { topic, level, numModules, modulesCount, targetAudience } = req.body;
     if (!topic?.trim()) return res.status(400).json({ error: 'topic is required' });
     const { generateCourseFromTopic } = require('../services/aiService');
-    const course = await generateCourseFromTopic({
+    const courseData = await generateCourseFromTopic({
       topic: topic.trim(),
       level: level || 'Beginner',
-      numModules: Math.min(Math.max(parseInt(numModules) || 3, 1), 8),
+      numModules: Math.min(Math.max(parseInt(numModules || modulesCount) || 3, 1), 8),
       targetAudience,
     });
-    res.json({ course });
+    const saved = await saveGeneratedCourse(courseData, req.user.id);
+    res.json({ course: saved });
   } catch (err) { next(err); }
 });
 
@@ -136,7 +258,8 @@ router.post('/courses/generate-for-learner/:userId', async (req, res, next) => {
       req.params.userId,
       Math.min(Math.max(parseInt(numModules) || 3, 1), 8),
     );
-    res.json(result);
+    const saved = await saveGeneratedCourse(result.course, req.user.id);
+    res.json({ course: saved, learnerName: result.learnerName });
   } catch (err) { next(err); }
 });
 
@@ -202,17 +325,28 @@ router.post('/courses/:id/modules', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// PUT /admin/modules/:id
+router.put('/modules/:id', async (req, res, next) => {
+  try {
+    const data   = moduleSchema.partial().parse(req.body);
+    const module = await prisma.module.update({ where: { id: req.params.id }, data });
+    res.json({ module });
+  } catch (err) { next(err); }
+});
+
 // ── Lessons ────────────────────────────────────────────────────────────────
 
 const lessonSchema = z.object({
-  title:            z.string().min(2).max(255),
-  type:             z.enum(['video', 'text', 'quiz', 'project', 'simulation']),
-  displayOrder:     z.number().int(),
-  contentBody:      z.string().optional(),       // Markdown/HTML for text lessons
-  videoAssetId:     z.string().optional(),       // YouTube video ID or Mux asset ID
+  title:             z.string().min(2).max(255),
+  type:              z.enum(['video', 'text', 'quiz', 'project', 'simulation']),
+  displayOrder:      z.number().int(),
+  contentBody:       z.string().optional(),
+  videoUrl:          z.string().url().optional().or(z.literal('')).transform(v => v || null),
+  simulationUrl:     z.string().url().optional().or(z.literal('')).transform(v => v || null),
+  videoAssetId:      z.string().optional(),
   videoDurationSecs: z.number().int().positive().optional(),
-  estimatedMins:    z.number().int().positive().optional(),
-  xpReward:         z.number().int().default(10),
+  estimatedMins:     z.number().int().positive().optional(),
+  xpReward:          z.number().int().default(10),
 });
 
 // POST /admin/modules/:id/lessons

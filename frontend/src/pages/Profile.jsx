@@ -129,6 +129,94 @@ export default function Profile() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+        {/* ── Readiness Score + AI Insights ── */}
+        {profile?.readinessScore != null && (
+          <div style={{ display: 'grid', gridTemplateColumns: profile?.aiExtractedData ? '200px 1fr' : '1fr', gap: 16 }}>
+
+            {/* Readiness ring */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: '20px 24px',
+                          border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,.04)',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <ReadinessRing score={profile.readinessScore} />
+              {profile.motivationType && (
+                <div style={{ marginTop: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Motivation</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5', textTransform: 'capitalize' }}>
+                    {profile.motivationType.replace(/_/g, ' ')}
+                  </div>
+                </div>
+              )}
+              {profile.careerUrgency && (
+                <div style={{ marginTop: 8, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Urgency</div>
+                  <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} style={{ width: 8, height: 8, borderRadius: '50%',
+                        background: i <= profile.careerUrgency ? '#f59e0b' : '#e2e8f0' }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* AI insights */}
+            {profile?.aiExtractedData && (
+              <div style={{ background: '#fff', borderRadius: 12, padding: '20px 24px',
+                            border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,.04)' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', marginBottom: 12 }}>
+                  🤖 AI Learning Profile
+                </div>
+                {profile.aiInterviewSummary && (
+                  <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.6, margin: '0 0 14px 0',
+                               background: '#f8fafc', borderRadius: 8, padding: '10px 14px',
+                               borderLeft: '3px solid #4f46e5' }}>
+                    {profile.aiInterviewSummary}
+                  </p>
+                )}
+                {profile.aiExtractedData.recommendedFocusAreas?.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+                      RECOMMENDED FOCUS AREAS
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {profile.aiExtractedData.recommendedFocusAreas.map((area, i) => (
+                        <span key={i} style={{ padding: '4px 10px', background: '#eef2ff',
+                                               borderRadius: 99, fontSize: 12, fontWeight: 600,
+                                               color: '#4338ca' }}>
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {profile.aiExtractedData.identifiedGaps?.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+                      SKILL GAPS
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {profile.aiExtractedData.identifiedGaps.map((gap, i) => (
+                        <span key={i} style={{ padding: '4px 10px', background: '#fef3c7',
+                                               borderRadius: 99, fontSize: 12, fontWeight: 600,
+                                               color: '#92400e' }}>
+                          {gap}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {profile.aiExtractedData.learnerPersona && (
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                    Persona: <span style={{ fontWeight: 700, color: '#64748b', textTransform: 'capitalize' }}>
+                      {profile.aiExtractedData.learnerPersona.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Basic info card ── */}
         <Section title="👤 Basic Info">
           <FormRow label="Career Goal"
@@ -271,3 +359,25 @@ const inputStyle = {
   fontSize: 14, outline: 'none', background: '#fafafa', boxSizing: 'border-box',
   fontFamily: 'inherit',
 };
+
+function ReadinessRing({ score }) {
+  const radius = 44;
+  const circ = 2 * Math.PI * radius;
+  const dash = (score / 100) * circ;
+  const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';
+  const label = score >= 70 ? 'Ready' : score >= 40 ? 'Almost' : 'Getting there';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+        <circle cx="55" cy="55" r={radius} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          transform="rotate(-90 55 55)" />
+        <text x="55" y="51" textAnchor="middle" fontSize="20" fontWeight="800" fill={color}>{score}</text>
+        <text x="55" y="65" textAnchor="middle" fontSize="10" fill="#64748b">/ 100</text>
+      </svg>
+      <div style={{ fontSize: 12, fontWeight: 700, color, marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: '#94a3b8' }}>Readiness Score</div>
+    </div>
+  );
+}

@@ -117,15 +117,29 @@ model User {
 model LearnerProfile {
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId              String    @unique @map("user_id") @db.Uuid
-  careerGoal          String?   @map("career_goal") @db.VarChar(255)
-  currentRole         String?   @map("current_role") @db.VarChar(255)
-  experienceYears     Int?      @map("experience_years")
-  industry            String?   @db.VarChar(255)
-  educationLevel      String?   @map("education_level") @db.VarChar(100)
-  learningStyles      String[]  @map("learning_styles")
-  dailyCommitmentMins Int?      @map("daily_commitment_mins")
-  motivationScore     Decimal?  @map("motivation_score") @db.Decimal(3, 2)
-  activePathId        String?   @map("active_path_id") @db.Uuid
+  onboardingCompleted   Boolean   @default(false) @map("onboarding_completed")
+  careerGoal            String?   @map("career_goal") @db.VarChar(255)
+  currentRole           String?   @map("current_role") @db.VarChar(255)
+  experienceYears       Int?      @map("experience_years")
+  industry              String?   @db.VarChar(255)
+  educationLevel        String?   @map("education_level") @db.VarChar(100)
+  employmentStatus      String?   @map("employment_status") @db.VarChar(100)
+  goalType              String?   @map("goal_type") @db.VarChar(100)
+  sixMonthGoal          String?   @map("six_month_goal") @db.Text
+  weeklyHoursAvailable  Int?      @map("weekly_hours_available")
+  learningStyles        String[]  @map("learning_styles")
+  dailyCommitmentMins   Int?      @map("daily_commitment_mins")
+  motivationScore       Decimal?  @map("motivation_score") @db.Decimal(3, 2)
+  motivationType        String?   @map("motivation_type") @db.VarChar(100)
+  careerUrgency         Int?      @map("career_urgency")
+  budgetRange           String?   @map("budget_range") @db.VarChar(50)
+  hasDeadline           Boolean?  @map("has_deadline")
+  targetCompletionDate  String?   @map("target_completion_date") @db.VarChar(50)
+  accessibilityNeeds    String?   @map("accessibility_needs") @db.VarChar(255)
+  readinessScore        Int?      @map("readiness_score")
+  aiInterviewSummary    String?   @map("ai_interview_summary") @db.Text
+  aiExtractedData       Json?     @map("ai_extracted_data")
+  activePathId          String?   @map("active_path_id") @db.Uuid
   xpTotal             Int       @default(0) @map("xp_total")
   level               Int       @default(1)
   streakDays          Int       @default(0) @map("streak_days")
@@ -202,11 +216,13 @@ model Lesson {
   title            String      @db.VarChar(255)
   type             LessonType
   displayOrder     Int         @map("display_order")
-  contentBody      String?     @map("content_body") @db.Text
-  videoAssetId     String?     @map("video_asset_id") @db.VarChar(255)
-  videoDurationSecs Int?       @map("video_duration_secs")
-  estimatedMins    Int?        @map("estimated_mins")
-  xpReward         Int         @default(10) @map("xp_reward")
+  contentBody       String?     @map("content_body") @db.Text
+  videoUrl          String?     @map("video_url") @db.VarChar(512)
+  simulationUrl     String?     @map("simulation_url") @db.VarChar(512)
+  videoAssetId      String?     @map("video_asset_id") @db.VarChar(255)
+  videoDurationSecs Int?        @map("video_duration_secs")
+  estimatedMins     Int?        @map("estimated_mins")
+  xpReward          Int         @default(10) @map("xp_reward")
 
   module            Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   completions       LessonCompletion[]
@@ -304,6 +320,7 @@ model UserSkill {
   userId         String   @map("user_id") @db.Uuid
   skillId        String   @map("skill_id") @db.Uuid
   proficiencyPct Decimal  @default(0) @map("proficiency_pct") @db.Decimal(5, 2)
+  selfRated      Boolean  @default(false) @map("self_rated")
   evidenceCount  Int      @default(0) @map("evidence_count")
   lastAssessedAt DateTime? @map("last_assessed_at") @db.Timestamptz()
 
